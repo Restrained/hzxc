@@ -11,7 +11,7 @@ from urllib.parse import urlparse
 import loguru
 from bricks import const
 from bricks.core import signals
-from bricks.core.signals import Success
+from bricks.core.signals import Success, Failure
 from bricks.db.mongo import Mongo
 from bricks.lib.queues import RedisQueue
 from bricks.plugins import scripts
@@ -115,7 +115,7 @@ class ArchiveViewing(template.Spider):
                 template.Pipeline(
                     func=to_mongo,
                     kwargs={
-                        "path": "archive_viewing_list",
+                        "path": "archive_viewing_list_v3",
                         "conn": self.mongo,
                     },
                     success=True
@@ -150,23 +150,21 @@ class ArchiveViewing(template.Spider):
         seeds = context.seeds
         response = context.response
         api_file_path = r"D:\pyProject\hzcx\renHeHuiZhi\chineseoptics\input\json_api_list"
+
+        # 读取文件并生成api_site_list
         with open(api_file_path, "r", encoding="utf-8") as f:
-            lines  = f.readlines()
-        api_site_list = [line.strip() for line in lines]
-        if seeds['$config'] in (0,1):
-            # if any(journal_name == seeds['nameOfTheJournal'] for journal_name in ['中国微生态学杂志', '环境化学', '生态毒理学报']) :
-            if "第{{catalog.issue}}期" in response.text or any(journal_name == seeds['nameOfTheJournal'] for journal_name in api_site_list):
-                # 解析 URL
-                url = seeds['officialWebsite']
-                parsed_url = urlparse(url)
+            api_site_list = [line.strip() for line in f.readlines()]
 
-                # 获取域名部分
-                domain = parsed_url.scheme + "://" + parsed_url.netloc
-
-                # 获取路径部分并去掉结尾的斜杠
+        # 处理$config为0或1的情况
+        if seeds['$config'] in {0, 1}:
+            if "第{{catalog.issue}}期" in response.text or seeds['nameOfTheJournal'] in api_site_list:
+                # 获取域名和路径
+                parsed_url = urlparse(seeds['officialWebsite'])
+                domain = f"{parsed_url.scheme}://{parsed_url.netloc}"
                 path = parsed_url.path.strip('/')
 
-                context.submit({**context.seeds,'officialWebsite': domain, 'path': path, "$config": 2})
+                # 提交新的context数据并抛出Success
+                context.submit({**context.seeds, 'officialWebsite': domain, 'path': path, "$config": 2})
                 raise Success
 
             if response.status_code == 303 or response.status_code == 404:
@@ -175,153 +173,69 @@ class ArchiveViewing(template.Spider):
 
             if any(features in context.response.text for features in ['list-text', 'guokan-con-tab', 'phone-archive']):
                 return True
-            else:
-                return False
-        else:
-            status_code = response.get("result")
-            if status_code == "success":
-                return True
-            else:
-                return False
+
+            raise Failure
+
+        # 处理$config不为0或1的情况，如果不满足条件则抛出Failure
+        if response.get("result") != "success":
+            raise Failure
+
+        return True
+
 
     def _parse(self, context: template.Context) -> List:
-        result = []
         seeds = context.seeds
         response = context.response
 
         if seeds['$config'] == 2:
-            return self._parse_v4(context)
+            return self._parse_json(context)
         html = response.text
         # 解析HTML
         soup = BeautifulSoup(html, 'html.parser')
 
         # 定位到特定div
-        archive = soup.find('div', id='archive')
+        archive = soup.find('div', id='archive') or \
+                  soup.find('div', class_='guokan-con-tab') or \
+                  soup.find('ul', class_='archives_list')
 
 
         if not archive:
-            return self._parse_v2(context)
-
-        # 定位到<select id="s1" class="search_year form-control">
-        archive_list = archive.find_all('div', class_='arci-t')
-
-
-        if not archive_list:
             loguru.logger.info(f"{seeds['nameOfTheJournal']},"
                                f"{seeds['officialWebsite']}无法找到搜索年份选择框")
-            return result
-        for items in archive_list:
-            # 获取所有<option>标签的值和文本
-            a_tag = items.find('a')
-            href = a_tag['href'] if a_tag else None
-            p_text = items.text.strip()
-            pattern = re.compile("(\d+)年(.+)期")
-            year, issue = re.search(pattern, p_text).groups()
-            base_url = get_base_url(seeds['officialWebsite'])
-            issue_href = base_url + href
-            result.append({
-                'year': year,
-                'issue': issue,
-                'raw_issue': p_text,
-                'issue_href': issue_href,
-                'nameOfTheJournal': seeds['nameOfTheJournal'],
-                'officialWebsite': seeds['officialWebsite']
-            })
+            assert False
 
-        return result
+        # 根据找到的元素选择不同的查询方式
+        if 'archive' in archive.get('id', []):
+            archive_list = archive.find_all('div', class_='arci-t')
+        elif 'guokan-con-tab' in archive.get('class', []):
+            archive_list = archive.find_all('td')
+        else:
+            archive_list = archive.find_all('p', class_='panelText')
 
-    def _parse_v2(self, context: template.Context) -> List:
         result = []
-        seeds = context.seeds
-        response = context.response
-        html = response.text
-        # 解析HTML
-        soup = BeautifulSoup(html, 'html.parser')
+        issue_pattern = re.compile("([0-9a-zA-Z]+)期")
+        year_pattern = re.compile(r"(article|custom)/(\d{4})/")
 
-        # 定位到特定div
-        archive = soup.find('div', class_='guokan-con-tab')
+        base_url = get_base_url(seeds['officialWebsite'])  # 提前提取 base_url
 
-        if not archive:
-            return self._parse_v3(context)
-
-        # 定位到<select id="s1" class="search_year form-control">
-        archive_list = archive.find_all('td')
-        if not archive_list:
-            loguru.logger.info(f"{seeds['nameOfTheJournal']},"
-                               f"{seeds['officialWebsite']}无法找到搜索年份选择框")
-            return result
         for items in archive_list:
             # 获取所有<option>标签的值和文本
             a_tag = items.find('a')
             href = a_tag['href'] if a_tag else ''
             p_text = re.sub(r"\s+", "", items.text)
-            issue_pattern = re.compile("([0-9a-zA-Z]+)期")
-            year_pattern = re.compile(r"(article|custom)/(\d+)/")
-            if href:
-                year_result = re.search(year_pattern, href)
-                if year_result:
-                    year = year_result.group(2)
-                else:
-                    year = ''
-            else:
-                year = ''
-            issue_result = re.search(issue_pattern, p_text)
-            if issue_result:
-                issue = issue_result.group(1)
-            else:
-                issue = ''
-            base_url = get_base_url(seeds['officialWebsite'])
-            issue_href = base_url + href
-            result.append({
-                'year': year,
-                'issue': issue,
-                'raw_issue': p_text,
-                'issue_href': issue_href,
-                'nameOfTheJournal': seeds['nameOfTheJournal'],
-                'officialWebsite': seeds['officialWebsite']
-            })
 
-        return result
+            # 只进行一次正则匹配，并存储匹配结果
+            year_match  = re.search(year_pattern, href)
+            issue_match = re.search(issue_pattern, p_text)
 
-    def _parse_v3(self, context: template.Context) -> List:
-        result = []
-        seeds = context.seeds
-        response = context.response
-        html = response.text
-        # 解析HTML
-        soup = BeautifulSoup(html, 'html.parser')
+            year = year_match.group(2) if year_match else ''
+            issue = issue_match.group(1) if issue_match else ''
 
-        # 定位到特定div
-        archive = soup.find('ul', class_='archives_list')
+            if not year:
+                continue
 
-        if not archive:
-            return result
-
-        # 定位到<select id="s1" class="search_year form-control">
-        archive_list = archive.find_all('p', class_='panelText')
-        if not archive_list:
-            loguru.logger.info(f"{seeds['nameOfTheJournal']},"
-                               f"{seeds['officialWebsite']}无法找到搜索年份选择框")
-            return result
-        for items in archive_list:
-            # 获取所有<option>标签的值和文本
-            a_tag = items.find('a')
-            href = a_tag['href'] if a_tag else None
-            p_text = re.sub(r"\s+", "", items.text)
-            issue_pattern = re.compile("([0-9a-zA-Z]+)期")
-            year_pattern = re.compile("(article|custom)/(\d+)/")
-            year_result = re.search(year_pattern, href)
-            if year_result:
-                year = re.search(year_pattern, href).group(2)
-            else:
-                year = ''
-            issue_result = re.search(issue_pattern, p_text)
-            if issue_result:
-                issue = issue_result.group(1)
-            else:
-                issue = ''
-            base_url = get_base_url(seeds['officialWebsite'])
-            issue_href = base_url + href
+            # 拼接 href
+            issue_href = href if href.startswith(('http', 'https')) else base_url + href if href.startswith("/") else f'https://{href}'
 
             result.append({
                 'year': year,
@@ -334,34 +248,30 @@ class ArchiveViewing(template.Spider):
 
         return result
 
-    def _parse_v4(self, context: template.Context) -> List:
-        result = []
+
+
+    def _parse_json(self, context: template.Context) -> List:
         seeds = context.seeds
         response = context.response
-        data = response.get('data')
-        if data:
-            for items  in data:
-                year = items['year']
-                issue = items['issue']
-                publisherId = items['publisherId']
-                raw_issue = ''
-                base_url = get_base_url(seeds['officialWebsite'])
-                issue_href = base_url + f"/{publisherId}/article/{year}/{issue}"
-                result.append({
-                    'year': year,
-                    'issue': issue,
-                    'raw_issue': raw_issue,
-                    'issue_href': issue_href,
-                    'nameOfTheJournal': seeds['nameOfTheJournal'],
-                    'officialWebsite': seeds['officialWebsite']
-                })
+        data = response.get('data', [])
 
-        else:
-            return result
+        if not data:
+            return []
 
+        base_url = get_base_url(seeds['officialWebsite'])
 
+        return [
+            {
+                'year': item['year'],
+                'issue': item['issue'],
+                'raw_issue': '',  # 固定为空字符串
+                'issue_href': f"{base_url}/{item['publisherId']}/article/{item['year']}/{item['issue']}",
+                'nameOfTheJournal': seeds['nameOfTheJournal'],
+                'officialWebsite': seeds['officialWebsite']
+            }
+            for item in data
+        ]
 
-        return result
 
 if __name__ == '__main__':
     proxy = {
@@ -386,4 +296,4 @@ if __name__ == '__main__':
         # proxy=proxy  # 设置代理来源
     )
 
-    spider.run(task_name='spider')
+    spider.run(task_name='all')
