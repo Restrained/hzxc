@@ -331,5 +331,5 @@ if __name__ == '__main__':
         # proxy=proxy  # 设置代理来源
     )
 
-    spider.run(task_name='init')
+    spider.run(task_name='spider')
     # spider.survey({"_id": "6747bfd6447b8e44e1a21f78", "batch_id": "2024-11-22", "domain": "http://journal.bit.edu.cn", "journal_abbrev": "zr", "journal_title": "北京理工大学学报自然版"})
