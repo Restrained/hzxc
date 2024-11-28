@@ -4,28 +4,26 @@ archive_viewing -
 Author: AllenWan
 Date: 2024/11/14
 """
+import base64
 import re
+import time
 from typing import List
-from urllib.parse import urlparse
 
 import loguru
 from bricks import const
 from bricks.core import signals
 from bricks.core.signals import Success, Failure
-from bricks.db.mongo import Mongo
 from bricks.lib.queues import RedisQueue
-from bricks.plugins import scripts
-from bricks.plugins.make_seeds import by_csv
 from bricks.plugins.storage import to_mongo
 from bricks.spider import template
 from bricks.db.redis_ import Redis
 from bricks.spider.template import Config
-from bricks.downloader import requests_
 from bricks.utils.fake import user_agent
 from bs4 import BeautifulSoup
 
-
-from utils.url import normalize_url, get_base_url
+from config.config_info import MongoConfig
+from db.mongo import MongoInfo
+from utils.batch_info import BatchProcessor
 
 
 class ArchiveViewing(template.Spider):
@@ -33,8 +31,13 @@ class ArchiveViewing(template.Spider):
         super().__init__(**kwargs)
         # 种子、存储配置定义
         self.redis = Redis()
-        self.mongo = Mongo(
-            database='renHeHuiZhi',
+        self.mongo = MongoInfo(
+            host=MongoConfig.host,
+            port=MongoConfig.port,
+            username= base64.b64decode(MongoConfig.username).decode("utf-8"),
+            password=base64.b64decode(MongoConfig.password).decode("utf-8"),
+            database=MongoConfig.database,
+            auth_database=MongoConfig.auth_database
         )
 
     @property
@@ -42,55 +45,86 @@ class ArchiveViewing(template.Spider):
         return Config(
             init=[
                 template.Init(
-                    func=by_csv,
+                    func=self._init_seeds,
                     kwargs={
-                        'path': r"D:\pyProject\hzcx\journalClassification\output\output_v3_redirect.csv",
-                        "query": "select nameOfTheJournal,redirectedUrl as officialWebsite from <TABLE> where 第三方名称 = '北京仁和汇智信息技术有限公司'",
-                        'batch_size': 5000
+
                     },
                     layout=template.Layout(
-                        factory={"officialWebsite": lambda x: x if x.endswith('/') else x + '/'},
-
+                        factory={"batch_id": lambda x: BatchProcessor.get_batch_id(batch_key="Weekly"),
+                                 "journal_abbrev": lambda x: x.lower() if x else x,
+                                 }
                     )
                 ),
 
             ],
             download=[
                 template.Download(
-                    url="{officialWebsite}archive_list.htm",
+                    url="{domain}/archive_list.htm",
                     headers={
                         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
                         'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
                         'Connection': 'keep-alive',
-                        'Referer': '{officialWebsite}',
+                        'Referer': '{domain}',
                         'Upgrade-Insecure-Requests': '1',
                         'User-Agent': user_agent.chrome()
                     },
                     timeout=10,
                     max_retry=2,
-                    ok={"response.status_code == 303": signals.Pass, "response.status_code == 404": signals.Pass}
+                    ok={"response.status_code == 303": signals.Pass, "response.status_code == 404": signals.Pass,
+                        "response.status_code == 500": signals.Pass}
 
                 ),
                 template.Download(
-                    url="{officialWebsite}archive",
+                    url="{domain}/{journal_abbrev}/archive_list.htm",
                     headers={
                         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
                         'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
                         'Connection': 'keep-alive',
-                        'Referer': '{officialWebsite}',
+                        'Referer': '{domain}',
                         'Upgrade-Insecure-Requests': '1',
-                        # 'User-Agent': user_agent.chrome()
+                        'User-Agent': user_agent.chrome()
+                    },
+                    timeout=10,
+                    max_retry=2,
+                    ok={"response.status_code == 303": signals.Pass, "response.status_code == 404": signals.Pass,
+                        "response.status_code == 500": signals.Pass}
+
+                ),
+                template.Download(
+                    url="{domain}/archive",
+                    headers={
+                        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+                        'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
+                        'Connection': 'keep-alive',
+                        'Referer': '{domain}',
+                        'Upgrade-Insecure-Requests': '1',
                         "User-Agent": 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36 Edg/130.0.0.0'
                     },
                     timeout=10,
                     max_retry=2,
-                    ok={"response.status_code == 303": signals.Pass, "response.status_code == 404": signals.Pass}
+                    ok={"response.status_code == 303": signals.Pass, "response.status_code == 404": signals.Pass,
+                        "response.status_code == 500": signals.Pass}
                 ),
                 template.Download(
-                    url="{officialWebsite}/data/article/archive-list-data",
+                    url="{domain}/{journal_abbrev}/archive",
+                    headers={
+                        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+                        'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
+                        'Connection': 'keep-alive',
+                        'Referer': '{domain}',
+                        'Upgrade-Insecure-Requests': '1',
+                        "User-Agent": 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36 Edg/130.0.0.0'
+                    },
+                    timeout=10,
+                    max_retry=2,
+                    ok={"response.status_code == 303": signals.Pass, "response.status_code == 404": signals.Pass,
+                        "response.status_code == 500": signals.Pass}
+                ),
+                template.Download(
+                    url="{domain}/data/article/archive-list-data",
                     method="POST",
                     params={
-                        "publisherId": "{path}"
+                        "publisherId": "{journal_abbrev}"
                     },
                     headers={
                       'Accept': 'application/json, text/plain, */*',
@@ -115,8 +149,9 @@ class ArchiveViewing(template.Spider):
                 template.Pipeline(
                     func=to_mongo,
                     kwargs={
-                        "path": "archive_viewing_list_v3",
+                        "path": "journal_issue_list",
                         "conn": self.mongo,
+                        "row_keys": ["year", "issue", "issue_href", "journal_title"]
                     },
                     success=True
                 )
@@ -125,11 +160,7 @@ class ArchiveViewing(template.Spider):
                 const.AFTER_REQUEST: [
                     template.Task(
                         func=self.is_success,
-                        kwargs={
-                            "match": [
-                                "any(features in context.response.text for features in ['list-text', 'guokan-con-tab', 'phone-archive'])"
-                            ]
-                        }
+
                     )
                 ],
 
@@ -138,56 +169,38 @@ class ArchiveViewing(template.Spider):
 
         )
 
-    def set_href(self, context: template.Context):
-        items = context.items
-
-        for item in items:
-            item['issue_href'] = f"/{item['issue_href']}/article/{item['year']}/{item['year']}"
-
-        return items
-
-    def is_success(self, context: template.Context):
+    @staticmethod
+    def is_success(context: template.Context):
         seeds = context.seeds
         response = context.response
-        api_file_path = r"D:\pyProject\hzcx\renHeHuiZhi\chineseoptics\input\json_api_list"
+        api_file_path = r"D:\pyProject\hzcx\events\spiders\rhhz\input\json_api_list"
 
         # 读取文件并生成api_site_list
         with open(api_file_path, "r", encoding="utf-8") as f:
             api_site_list = [line.strip() for line in f.readlines()]
 
-        # 处理$config为0或1的情况
-        if seeds['$config'] in {0, 1}:
-            if "第{{catalog.issue}}期" in response.text or seeds['nameOfTheJournal'] in api_site_list:
-                # 获取域名和路径
-                parsed_url = urlparse(seeds['officialWebsite'])
-                domain = f"{parsed_url.scheme}://{parsed_url.netloc}"
-                path = parsed_url.path.strip('/')
-
-                # 提交新的context数据并抛出Success
-                context.submit({**context.seeds, 'officialWebsite': domain, 'path': path, "$config": 2})
+        if seeds['$config'] != 4 :
+            if "第{{catalog.issue}}期" in response.text or seeds['journal_title'] in api_site_list:
+                context.submit(
+                    {**context.seeds, 'domain': seeds["domain"], 'publisher_id': seeds["journal_abbrev"],
+                     "$config": 4})
+                raise Success
+            if response.status_code == 303 or response.status_code == 404 or "errorMsgData" in response.text:
+                context.submit({**context.seeds, "$config": seeds['$config'] + 1})
                 raise Success
 
-            if response.status_code == 303 or response.status_code == 404:
-                context.submit({**context.seeds, "$config": 1})
-                raise Success
+        if (any(features in context.response.text for features in ['list-text', 'guokan-con-tab', 'phone-archive'])
+                or seeds['$config'] == 4 and response.get("result") == "success"):
+            return True
 
-            if any(features in context.response.text for features in ['list-text', 'guokan-con-tab', 'phone-archive']):
-                return True
-
-            raise Failure
-
-        # 处理$config不为0或1的情况，如果不满足条件则抛出Failure
-        if response.get("result") != "success":
-            raise Failure
-
-        return True
+        raise Failure
 
 
     def _parse(self, context: template.Context) -> List:
         seeds = context.seeds
         response = context.response
 
-        if seeds['$config'] == 2:
+        if seeds['$config'] == 4:
             return self._parse_json(context)
         html = response.text
         # 解析HTML
@@ -200,8 +213,8 @@ class ArchiveViewing(template.Spider):
 
 
         if not archive:
-            loguru.logger.info(f"{seeds['nameOfTheJournal']},"
-                               f"{seeds['officialWebsite']}无法找到搜索年份选择框")
+            loguru.logger.info(f"{seeds['journal_title']},"
+                               f"{seeds['domain']}无法找到搜索年份选择框")
             assert False
 
         # 根据找到的元素选择不同的查询方式
@@ -215,8 +228,6 @@ class ArchiveViewing(template.Spider):
         result = []
         issue_pattern = re.compile("([0-9a-zA-Z]+)期")
         year_pattern = re.compile(r"(article|custom)/(\d{4})/")
-
-        base_url = get_base_url(seeds['officialWebsite'])  # 提前提取 base_url
 
         for items in archive_list:
             # 获取所有<option>标签的值和文本
@@ -235,22 +246,25 @@ class ArchiveViewing(template.Spider):
                 continue
 
             # 拼接 href
-            issue_href = href if href.startswith(('http', 'https')) else base_url + href if href.startswith("/") else f'https://{href}'
+            issue_href = href if href.startswith('http') else seeds['domain'] + href if href.startswith("/") else f'https://{href}'
 
             result.append({
                 'year': year,
                 'issue': issue,
                 'raw_issue': p_text,
                 'issue_href': issue_href,
-                'nameOfTheJournal': seeds['nameOfTheJournal'],
-                'officialWebsite': seeds['officialWebsite']
+                'journal_title': seeds['journal_title'],
+                "publisher_id": seeds['journal_abbrev'],
+                'domain': seeds['domain'],
+                "time_stamp": int(time.time() * 1000),
+                "batch_id": seeds["batch_id"]
             })
 
         return result
 
 
-
-    def _parse_json(self, context: template.Context) -> List:
+    @staticmethod
+    def _parse_json(context: template.Context) -> List:
         seeds = context.seeds
         response = context.response
         data = response.get('data', [])
@@ -258,19 +272,30 @@ class ArchiveViewing(template.Spider):
         if not data:
             return []
 
-        base_url = get_base_url(seeds['officialWebsite'])
 
         return [
             {
                 'year': item['year'],
                 'issue': item['issue'],
                 'raw_issue': '',  # 固定为空字符串
-                'issue_href': f"{base_url}/{item['publisherId']}/article/{item['year']}/{item['issue']}",
-                'nameOfTheJournal': seeds['nameOfTheJournal'],
-                'officialWebsite': seeds['officialWebsite']
+                'issue_href': f"{seeds['domain']}/{seeds['journal_abbrev']}/article/{item['year']}/{item['issue']}",
+                'journal_title': seeds['journal_title'],
+                "publisher_id": seeds['journal_abbrev'],
+                'domain': seeds['domain'],
+                "time_stamp": int(time.time() * 1000),
+                "batch_id": seeds["batch_id"]
             }
             for item in data
         ]
+
+    def _init_seeds(self):
+        iter_data = self.mongo.batch_data(
+            collection= "journal_info",
+            query={},
+            projection={"journal_title": 1, "domain": 1, "journal_abbrev": 1},
+            # count=10
+        )
+        return iter_data
 
 
 if __name__ == '__main__':
@@ -296,4 +321,5 @@ if __name__ == '__main__':
         # proxy=proxy  # 设置代理来源
     )
 
-    spider.run(task_name='all')
+    spider.run(task_name='spider')
+    # spider.survey({"_id": "6747bfd6447b8e44e1a21f78", "batch_id": "2024-11-22", "domain": "http://journal.bit.edu.cn", "journal_abbrev": "zr", "journal_title": "北京理工大学学报自然版"})

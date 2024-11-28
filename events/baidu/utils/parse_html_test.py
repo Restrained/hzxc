@@ -31,6 +31,6 @@ def parse_html_from_file(file_path):
 
 
 # 示例调用
-file_path = r'D:\pyProject\hzcx\baidu\input\html\baidu.html'
+file_path = r'/events/baidu/input/html/baidu.html'
 result = parse_html_from_file(file_path)
 print(result)
