@@ -21,7 +21,7 @@ from bricks.spider.template import Config
 from bricks.utils.fake import user_agent
 from bs4 import BeautifulSoup
 
-from config.config_info import MongoConfig, RedisConfig
+from config.config_info import MongoConfig, RedisConfig, SPECIAL_JOURNAL_LIST
 from db.mongo import MongoInfo
 from utils.batch_info import BatchProcessor
 
@@ -178,14 +178,9 @@ class ArchiveViewing(template.Spider):
     def is_success(context: template.Context):
         seeds = context.seeds
         response = context.response
-        api_file_path = r"D:\pyProject\hzcx\events\spiders\rhhz\input\json_api_list"
-
-        # 读取文件并生成api_site_list
-        with open(api_file_path, "r", encoding="utf-8") as f:
-            api_site_list = [line.strip() for line in f.readlines()]
 
         if seeds['$config'] != 4 :
-            if "第{{catalog.issue}}期" in response.text or seeds['journal_title'] in api_site_list:
+            if "第{{catalog.issue}}期" in response.text or seeds['journal_title'] in SPECIAL_JOURNAL_LIST:
                 context.submit(
                     {**context.seeds, 'domain': seeds["domain"], 'publisher_id': seeds["journal_abbrev"],
                      "$config": 4})

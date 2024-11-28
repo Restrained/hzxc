@@ -23,5 +23,15 @@ class RedisConfig:
 
 
 
+SPECIAL_JOURNAL_LIST = [
+    "中国微生态学杂志",
+    "环境化学",
+    "生态毒理学报",
+    "岩石学报",
+    "光电工程",
+    "第四纪研究",
+    "临床耳鼻咽喉头颈外科杂志"
+]
+
 if __name__ == '__main__':
     print(base64.b64decode(MongoConfig.password).decode("utf-8"),)
