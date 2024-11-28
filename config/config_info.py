@@ -15,5 +15,13 @@ class MongoConfig:
     auth_database = 'spider'
 
 
+class RedisConfig:
+    host = '192.168.0.41'
+    port = 16379
+    password = "SHp4YzIwMjM="
+    database = 8
+
+
+
 if __name__ == '__main__':
     print(base64.b64decode(MongoConfig.password).decode("utf-8"),)

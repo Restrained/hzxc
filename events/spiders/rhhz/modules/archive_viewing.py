@@ -21,7 +21,7 @@ from bricks.spider.template import Config
 from bricks.utils.fake import user_agent
 from bs4 import BeautifulSoup
 
-from config.config_info import MongoConfig
+from config.config_info import MongoConfig, RedisConfig
 from db.mongo import MongoInfo
 from utils.batch_info import BatchProcessor
 
@@ -30,7 +30,12 @@ class ArchiveViewing(template.Spider):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         # 种子、存储配置定义
-        self.redis = Redis()
+        self.redis = Redis(
+            host=RedisConfig.host,
+            port=RedisConfig.port,
+            password=base64.b64decode(RedisConfig.password).decode("utf-8"),
+            database=RedisConfig.database,
+        )
         self.mongo = MongoInfo(
             host=MongoConfig.host,
             port=MongoConfig.port,
@@ -317,9 +322,14 @@ if __name__ == '__main__':
         concurrency=1,
         # download=requests_.Downloader,  # 这里是为了强制使用requests下载器
         **{"init.queue.size": 1000000},  # 设置redis最大投放数量
-        task_queue=RedisQueue(),  # 定义种子来源
+        task_queue=RedisQueue(
+            host=RedisConfig.host,
+            port=RedisConfig.port,
+            password=base64.b64decode(RedisConfig.password).decode("utf-8"),
+            database=RedisConfig.database,
+        ),  # 定义种子来源
         # proxy=proxy  # 设置代理来源
     )
 
-    spider.run(task_name='spider')
+    spider.run(task_name='init')
     # spider.survey({"_id": "6747bfd6447b8e44e1a21f78", "batch_id": "2024-11-22", "domain": "http://journal.bit.edu.cn", "journal_abbrev": "zr", "journal_title": "北京理工大学学报自然版"})
