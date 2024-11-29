@@ -9,6 +9,8 @@ def get_publish_info(input_file, output_file):
     df = pd.read_csv(input_file)
     selected_list = ["id", "authorId"]
     df_selected = df[selected_list].copy()
+
+    df_selected = df_selected.dropna(subset=["id", "authorId"])
     # ["id", "authorId", "order_of_authors", "corresponding_author"]
     df_selected["order_of_authors"] = df.groupby('id').cumcount() + 1
     df_selected["corresponding_author"] = '否'
@@ -17,7 +19,7 @@ def get_publish_info(input_file, output_file):
     columns_to_concat = ["id", "authorId", "order_of_authors", "corresponding_author"]
 
     # 拼接列并用 `^` 分隔
-    df_selected['concatenated'] = df_selected[columns_to_concat].apply(lambda row: '§'.join(row.fillna("").astype(str)), axis=1)
+    df_selected['concatenated'] = df_selected[columns_to_concat].apply(lambda row: '⌘'.join(row.fillna("").astype(str)), axis=1)
 
     result = df_selected[['concatenated']]
 
@@ -27,6 +29,6 @@ def get_publish_info(input_file, output_file):
 
 if __name__ == '__main__':
     get_publish_info(
-        input_file=r"D:\output\csv\Achievement.csv",
+        input_file=r"D:\output\csv\achievement_info.csv",
         output_file=r"D:\output\csv\PUBLISH.csv"
     )

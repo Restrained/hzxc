@@ -5,13 +5,15 @@
 # @File    : get_achievement_info.py
 import pandas as pd
 
+from events.data_conversion.clean_data import clean_text
+
 
 def get_achievement_info(input_file1, input_file2, output_file):
     """
     处理表1，将指定列与表2进行关联后生成最终数据，并修正空值和引号问题。
 
-    :param table1_file: str, 表1的文件路径。
-    :param table2_file: str, 表2的文件路径 (包含作者信息)。
+    :param input_file1: str, 表1的文件路径。
+    :param input_file2: str, 表2的文件路径 (包含作者信息)。
     :param output_file: str, 处理后的文件路径。
     """
     # 读取表1
@@ -35,6 +37,22 @@ def get_achievement_info(input_file1, input_file2, output_file):
         "lang", "status", "publish_date", "article_type"
     ]
     table1 = table1[selected_columns].rename(columns=columns_mapping)
+
+    # 先填充 NaN 值（如果有的话），可以填充为空字符串
+    table1["abstracts"] = table1["abstracts"].fillna('')
+    table1["en_abstracts"] = table1["en_abstracts"].fillna('')
+
+    table1["status"] = "0"
+
+    table1["abstracts"] = table1["abstracts"].apply(clean_text)
+    table1["en_abstracts"] = table1["en_abstracts"].apply(clean_text)
+
+    table1["title"] = table1["title"].apply(clean_text)
+    table1["en_title"] = table1["en_title"].apply(clean_text)
+
+    table1["keywords"] = table1["keywords"].apply(clean_text).apply(lambda x: str([item.strip() for item in x.split(',')]) if x else '' )
+    table1["en_keywords"] = table1["en_keywords"].apply(clean_text).apply(lambda x: str([item.strip() for item in x.split(',')]) if x else '')
+
 
     df_merge = pd.merge(table1, table2, left_on=["article_id", "journal_title"],right_on=["article_id", "journal_title"], how="left")
 

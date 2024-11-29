@@ -13,9 +13,9 @@ def get_claimed_info(input_file1, input_file2, output_file):
     df1_renamed = df1_selected.rename(columns={"_id": "id"})
     df2 = pd.read_csv(input_file2)
     df2_selected = df2[["article_id", "journal_title", "InstitutionId"]]
-    merged = df1_renamed.merge(df2_selected, left_on=["article_id", "journal_title"], right_on=["article_id", "journal_title"], how="left")
+    merged = df1_renamed.merge(df2_selected, left_on=["article_id", "journal_title"], right_on=["article_id", "journal_title"])
     result_column_list = ["id", "InstitutionId"]
-    merged["concate"] = merged[result_column_list].fillna("").astype(str).apply("§".join, axis=1)
+    merged["concate"] = merged[result_column_list].fillna("").astype(str).apply("⌘".join, axis=1)
 
     result = merged[["concate"]]
     result = result.drop_duplicates(subset="concate", keep="first")

@@ -2,16 +2,16 @@
 # -*- coding: utf-8 -*-
 # @Time    : 2024/11/25 11:36
 # @Author  : AllenWan
-# @File    : venue.py
+# @File    : VENUE.py
 
 import pandas as pd
 
 def merge_venue_columns(input_file, output_file):
     df = pd.read_csv(input_file)
 
-    # 将列名和数据分别用 § 连接
-    column_names = "§".join(df.columns)
-    data_rows = df.fillna("").astype(str).apply("§".join, axis=1)
+    # 将列名和数据分别用 ⌘ 连接
+    column_names = "⌘".join(df.columns)
+    data_rows = df.fillna("").astype(str).apply("⌘".join, axis=1)
 
     # 合并列名和数据
     result = pd.DataFrame(data_rows.tolist(), columns=[column_names])

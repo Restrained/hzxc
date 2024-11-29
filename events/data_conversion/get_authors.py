@@ -3,10 +3,13 @@
 # @Time    : 2024/11/23 15:26
 # @Author  : AllenWan
 # @File    : get_authors.py
+import html
+import re
+
 import pandas as pd
 import json
 
-import pandas as pd
+
 
 def merge_table2_with_others(table2_file, authors_file, institutions_file, output_file):
     """
@@ -39,6 +42,8 @@ def merge_table2_with_others(table2_file, authors_file, institutions_file, outpu
         on=["cn_address"],
         how="left"
     )
+
+
 
     # 将关联结果导出为 CSV
     table2_with_institutions.to_csv(output_file, index=False, encoding="utf-8-sig")

@@ -6,7 +6,8 @@
 import pandas as pd
 
 import pandas as pd
-import json
+
+from events.data_conversion.clean_data import clean_text
 
 
 def process_table1_with_authors(table1_file, table2_file, output_file):
@@ -23,20 +24,6 @@ def process_table1_with_authors(table1_file, table2_file, output_file):
     # 读取表2
     table2 = pd.read_csv(table2_file)
 
-    # 选择表1需要的列并重命名，保留 article_id, journal_title, issn 以便后续关联
-    columns_mapping = {
-        "_id": "id",
-        "abstract": "abstracts",
-        "abstract_en": "en_abstracts",
-        "article_type": "type"
-    }
-    selected_columns = [
-        "article_id", "journal_title", "issn",  # 用于关联
-        "_id", "title", "en_title", "doi", "source",
-        "abstract", "abstract_en", "keywords", "en_keywords",
-        "lang", "status", "publish_date", "article_type"
-    ]
-    table1 = table1[selected_columns].rename(columns=columns_mapping)
 
     # 表1与表2关联，选择表2需要的列
     table2_selected_columns = ["authorId", "cn_name", "en_name", "cn_address", "InstitutionId", "article_id",
@@ -63,14 +50,19 @@ def process_table1_with_authors(table1_file, table2_file, output_file):
 
     merged_final = merged[final_columns]
 
+
+    #
+    merged_final["name"] = merged_final["name"].apply(clean_text)
+    merged_final["cn_address"] = merged_final["cn_address"].apply(clean_text)
+
     # 保存合并后的数据到输出文件
     merged_final.to_csv(output_file, index=False, encoding="utf-8-sig")
     print(f"处理后的数据已保存至: {output_file}")
 
 
 if __name__ == '__main__':
-    input_file = r'C:\Users\PY-01\Documents\local\renHeHuiZhi\article_info.csv'
+    input_file = r"D:\output\csv\article_info.csv"
     input_file2 = r"D:\output\csv\author_info_id.csv"
-    output_file = r'D:\output\csv\Achievement.csv'
+    output_file = r'D:\output\csv\achievement_info.csv'
 
     process_table1_with_authors(input_file, input_file2, output_file)
