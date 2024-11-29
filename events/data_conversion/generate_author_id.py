@@ -21,7 +21,7 @@ def process_authors_csv(input_path, output_path):
     # 指定需要的列
     selected_columns = [
         "cn_name", "en_name", "mail",
-        "cn_about_author", "en_about_author"
+        "cn_about_author"
     ]
     df = df[selected_columns]
 

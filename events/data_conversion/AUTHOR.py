@@ -18,6 +18,7 @@ def merge_author_columns(input_file, output_file):
 
     }
     df_renamed = df.rename(columns=columns_mapping)
+    df_renamed = df_renamed.drop(columns="en_about_author")
     df_renamed['type'] = 0
     df_renamed['orc_id'] = ''
 

@@ -38,6 +38,8 @@ def get_achievement_info(input_file1, input_file2, output_file):
     ]
     table1 = table1[selected_columns].rename(columns=columns_mapping)
 
+    table1['publish_date'] = table1['publish_date'].replace('时间戳输入错误，请检查后重试！', '1900-01-01')
+
     # 先填充 NaN 值（如果有的话），可以填充为空字符串
     table1["abstracts"] = table1["abstracts"].fillna('')
     table1["en_abstracts"] = table1["en_abstracts"].fillna('')
