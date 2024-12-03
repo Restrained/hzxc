@@ -3,6 +3,7 @@
 # @Time    : 2024/11/14 10:11
 # @Author  : AllenWan
 # @File    : list_of_journals.py
+import base64
 import re
 import time
 
@@ -11,25 +12,36 @@ from bricks import const
 from bricks.core import signals
 from bricks.core.signals import Success, Failure
 from bricks.lib.queues import RedisQueue
-from bricks.plugins import scripts
 from bricks.plugins.make_seeds import by_csv
 from bricks.plugins.storage import to_mongo
 from bricks.spider import template
 from bricks.db.redis_ import Redis
-from bricks.db.mongo import Mongo
+
 from bricks.spider.template import Config
 from bricks.utils.fake import user_agent
 from bs4 import BeautifulSoup
 
+from config.config_info import RedisConfig, MongoConfig, SPECIAL_JOURNAL_LIST
+from db.mongo import MongoInfo
 
 
 class JournalList(template.Spider):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-        self.redis = Redis()
-        self.mongo = Mongo(
-            database='modules',
+        self.redis = Redis(
+            host=RedisConfig.host,
+            port=RedisConfig.port,
+            password=base64.b64decode(RedisConfig.password).decode("utf-8"),
+            database=RedisConfig.database,
+        )
+        self.mongo = MongoInfo(
+            host=MongoConfig.host,
+            port=MongoConfig.port,
+            username= base64.b64decode(MongoConfig.username).decode("utf-8"),
+            password=base64.b64decode(MongoConfig.password).decode("utf-8"),
+            database=MongoConfig.database,
+            auth_database=MongoConfig.auth_database
         )
 
     @property
@@ -41,7 +53,7 @@ class JournalList(template.Spider):
                     func=by_csv,
                     kwargs={
                         "path": r"D:\pyProject\hzcx\renHeHuiZhi\chineseoptics\seeds\archive_viewing_list.csv",
-                        "query": "select year, issue, issue_href, nameOfTheJournal, officialWebsite, publisher_id  from <TABLE> where year !='' ",
+                        "query": "select year, issue, issue_href, journal_title, domain, publisher_id, batch_id  from <TABLE> ",
                         "batch_size": 2000
                     }
 
@@ -65,7 +77,7 @@ class JournalList(template.Spider):
                     ok={"response.status_code == 500": signals.Pass, "response.status_code == 404": signals.Pass}
                 ),
                 template.Download(
-                    url="{officialWebsite}/data/article/archive-article-data",
+                    url="{domain}/data/article/archive-article-data",
                     method="POST",
                     params={
                         "issue": "{issue}",
@@ -105,10 +117,13 @@ class JournalList(template.Spider):
                     },
                     layout=template.Layout(
                         default={
-                            "nameOfTheJournal": '{nameOfTheJournal}',
-                            "officialWebsite": '{officialWebsite}',},
+                            "journal_title": '{journal_title}',
+                            "domain": '{domain}',
+                            "batch_id": '{batch_id}',
+                            "time_stamp": int(time.time() * 1000)
+                        },
                         factory={
-                            "article_url": lambda x: ctx.seeds["officialWebsite"]  +'/article/doi/' + x if x else ""
+                            "article_url": lambda x: ctx.seeds["domain"]  +'/article/doi/' + x if x else ""
                         }
                     )
                 )
@@ -117,7 +132,7 @@ class JournalList(template.Spider):
                 template.Pipeline(
                     func=to_mongo,
                     kwargs={
-                        "path": "journal_list",
+                        "path": "journal_article_list",
                         "conn": self.mongo
 
                     },
@@ -136,14 +151,10 @@ class JournalList(template.Spider):
     def is_success(self, context: template.Context):
         seeds = context.seeds
         response = context.response
-        json_api_file_path = r"/events/modules/rhhz/input/json_api_list"
-
-        with open(json_api_file_path, "r", encoding="utf-8") as f:
-            json_api_list = list(rows.strip() for rows in f.readlines())
 
         if seeds['$config'] == 0:
             # 假设网站在特定名单中，走第二个接口请求
-            if seeds['nameOfTheJournal'] in json_api_list:
+            if seeds['journal_title'] in SPECIAL_JOURNAL_LIST:
                 context.submit({**seeds, "$config": 1})
                 raise Success
             soup = BeautifulSoup(response.text, 'lxml')
@@ -182,7 +193,7 @@ class JournalList(template.Spider):
                 elif href.startswith("//"):
                     article_url = f"https:{href}"
                 elif href.startswith("/"):
-                    article_url =seeds['officialWebsite'] + href
+                    article_url =seeds['domain'] + href
                 else:
                     article_url = f"https://{href}"
 
@@ -191,13 +202,15 @@ class JournalList(template.Spider):
                     "article_id": "",
                     "year": seeds['year'],
                     "issue": seeds['issue'],
-                    "nameOfTheJournal": seeds['nameOfTheJournal'],
-                    "officialWebsite": seeds['officialWebsite'],
+                    "journal_title": seeds['journal_title'],
+                    "domain": seeds['domain'],
                     "article_url": article_url,
                     "article_title": p_text,
+                    "time_stamp": int(time.time() * 1000),
+                    "batch_id": seeds['batch_id'],
                 })
         else:
-            loguru.logger.info(f"{seeds['nameOfTheJournal']} {seeds['year']} {seeds['issue']} 的{seeds['issue_href']} 请求结果为空")
+            loguru.logger.info(f"{seeds['journal_title']} {seeds['year']} {seeds['issue']} 的{seeds['issue_href']} 请求结果为空")
             raise Success
             # time.sleep(3000)
 
@@ -210,8 +223,8 @@ if __name__ == '__main__':
         **{"init.queue.size": 1000000},
         task_queue=RedisQueue(),
     )
-    spider.run( task_name='all')
-    # spider.survey({"issue": "2", "issue_href": "https://www.hjgcjsxb.org.cn/cn/article/2021/2", "nameOfTheJournal": "环境工程技术学报", "officialWebsite": "https://www.hjgcjsxb.org.cn", "publisher_id": "", "year": "2021"})
+    # spider.run( task_name='all')
+    spider.survey({"issue": "10", "issue_href": "https://cjm.dmu.edu.cn/zgwstxzz/article/2024/10", "journal_title": "中国微生态学杂志", "domain": "https://cjm.dmu.edu.cn", "publisher_id": "zgwstxzz", "year": "2024", "batch_id": "2024-11-22"})
     # {'issue': '3', 'issue_href': 'http://engineeringmechanics.cn/cn/article/2011/3', 'nameOfTheJournal': '工程力学', 'officialWebsite': 'http://engineeringmechanics.cn/', 'publisher_id': '', 'year': '2011', '$config': 0}
     # {'issue': '4', 'issue_href': 'http://ycxb.tobacco.org.cn/cn/article/2018/4', 'nameOfTheJournal': '中国烟草学报', 'officialWebsite': 'http://ycxb.tobacco.org.cn/', 'publisher_id': '', 'year': '2018', '$config': 0}
 

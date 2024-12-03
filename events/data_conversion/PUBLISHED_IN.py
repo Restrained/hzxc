@@ -36,5 +36,5 @@ def get_published_info(input_file1, input_file2, output_file):
 
 if __name__ == '__main__':
     get_published_info(
-        input_file1=r"C:\Users\PY-01\Documents\local\renHeHuiZhi\article_info.csv", input_file2=r"D:\output\csv\venue_info.csv", output_file=r"D:\output\csv\PUBLISH_IN.csv"
+        input_file1=r"C:\Users\PY-01\Documents\local\renHeHuiZhi\article_info.csv", input_file2=r"D:\output\csv\venue_info.csv", output_file=r"D:\output\csv\PUBLISHED_IN.csv"
     )

@@ -16,13 +16,11 @@ from bricks.db.mongo import Mongo
 from bricks.db.redis_ import Redis
 from bricks.downloader import requests_
 from bricks.lib.queues import RedisQueue
-from bricks.plugins import scripts
 from bricks.plugins.make_seeds import by_csv
 from bricks.plugins.storage import to_mongo
 from bricks.spider import template
 from bricks.spider.template import Config
 from bs4 import BeautifulSoup
-from jinja2.nodes import Continue
 
 from utils.dates import timestamp_to_date
 
