@@ -11,7 +11,7 @@ import loguru
 
 from events.data_conversion.file import CSVFile
 from events.data_conversion.operation import CSVProcessor, SpecificOperationStrategy, CompositeOperation, \
-    DefaultValueOperation, DateReplaceOperation, DuplicateOperation, KeywordSplitOperation, TableJoinOperation
+    DefaultValueOperation, StrReplaceOperation, DuplicateOperation, KeywordSplitOperation, TableJoinOperation
 
 
 class AchievementWithStrategy(CSVProcessor):
@@ -105,7 +105,7 @@ def main():
     achievement.output_path=r"D:\output\csv\achievement_info_output.csv"
 
     achievement_strategy = CompositeOperation([
-        DateReplaceOperation(achievement.replace_column_info),
+        StrReplaceOperation(achievement.replace_column_info),
         DefaultValueOperation(achievement.default_value_list),
         DuplicateOperation(primary_key=achievement.primary_key),
         KeywordSplitOperation(),

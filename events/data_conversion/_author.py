@@ -4,9 +4,11 @@
 # @Author  : AllenWan
 # @File    : _author.py
 # @Desc    ：
+import re
+
 from events.data_conversion.file import CSVFile
 from events.data_conversion.operation import SpecificOperationStrategy, CSVProcessor, CompositeOperation, \
-    DuplicateOperation
+     ReSubstringStrStrategy, CnNameSplitOperation, EnNameSplitOperation
 
 
 class AuthorWithStrategy(CSVProcessor):
@@ -29,7 +31,7 @@ class AuthorWithStrategy(CSVProcessor):
         定义该文件特定操作执行的入口
         :return:
         """
-        self.strategy.exec(self.data)
+        self.data = self.strategy.exec(self.data)
 
     def process(self):
         """
@@ -38,29 +40,39 @@ class AuthorWithStrategy(CSVProcessor):
         """
 
         # 1.过滤出特定列
-        self.filter_columns(self.csv_file.columns)
+        # self.filter_columns(self.csv_file.columns)
         # 2.通过策略集合先进行去重
         self.specific_operation()
         # 3.生成id
-        self.add_random_id(column_name="authorId")
+        # self.add_random_id(column_name="authorId")
 
 
 
 
 def main():
     # 特定文件对象实例
-    author_file_path = r'C:\Users\PY-01\Documents\local\renHeHuiZhi\author_info.csv'
+    author_file_path = r"D:\output\csv\author_info_clean.csv"
+    author_output_file_path = r"D:\output\csv\author_info_clean_test.csv"
     author = CSVFile(file_path=author_file_path)
 
     # 补充额外属性
     # 主键
-    author.primary_key = ["cn_name", "en_name", "mail"]
-    # 保留列
-    author.columns = [
-        "cn_name", "en_name", "mail", "cn_about_author"
-    ]
+    author.output_path = author_output_file_path
 
+    author_cn_name_sub_pattern =  re.compile(r'[^a-zA-Z\u4e00-\u9fa5 ,•·<>\d/.()；;，]') # 清除名字中其他无关字符
+    author_en_name_sub_pattern =  re.compile(r'[^a-zA-Z ,•·<>\d/.()；;，-]') # 清除名字中其他无关字符
     # 定义要执行的特定策略集合
     author_strategy = CompositeOperation([
-        DuplicateOperation(author.primary_key)
+        ReSubstringStrStrategy(column_name="cn_name", pattern=author_cn_name_sub_pattern),
+        ReSubstringStrStrategy(column_name="en_name", pattern=author_en_name_sub_pattern),
+        CnNameSplitOperation(column_name="cn_name", split_rule=' '),
+        EnNameSplitOperation(column_name="en_name", split_rule=',')
     ])
+
+    author_processor = AuthorWithStrategy(author, author_strategy)
+    author_processor.process()
+    author_processor.output_file()
+
+
+if __name__ == '__main__':
+    main()

@@ -9,6 +9,7 @@ import re
 import time
 import uuid
 from abc import ABC, abstractmethod
+from inspect import stack
 from typing import Union, Any, TypeVar, List, Literal
 
 import loguru
@@ -31,7 +32,6 @@ class CSVProcessor(ABC):
         self.csv_file = csv_file
         self.data: Union[T, None] = self.csv_file.data
         self._id = None
-
 
 
     def rename_columns(self):
@@ -133,6 +133,119 @@ class DuplicateOperation(SpecificOperationStrategy):
         data = data.drop_duplicates(subset=self.primary_key, keep='first')
         return data
 
+class CnNameSplitOperation(SpecificOperationStrategy):
+    def __init__(self, column_name: str, split_rule: str):
+        self.column_name = column_name
+        self.split_rule = split_rule
+
+    def exec(self, data: DataFrame) -> DataFrame:
+        def is_two_chinese(value: str) -> bool:
+            # 提取所有中文字符
+            chinese_chars = re.findall(r'[\u4e00-\u9fa5]', value)
+
+            # 判断提取的中文字符数是否为 2
+            return len(chinese_chars) == 2
+
+        def single_join(single_list: list):
+            nonlocal result
+            result = []
+            i = 0
+            while i < len(single_list) - 1:
+                # 如果当前元素和下一个元素的第一个元素（数字）是连续的
+                if single_list[i][0] + 1 == single_list[i + 1][0]:
+                    # 合并这两个元素
+                    result.append((single_list[i][0], single_list[i][1] + single_list[i + 1][1]))
+                    # 跳过下一个元素
+                    i += 2
+                else:
+                    # 如果不连续，跳过当前元素
+                    i += 1
+            return result
+
+        def remove_html_tags(text: str) -> str:
+            # 使用正则表达式去除所有 HTML 标签
+            return re.sub(r'<.*?>.*?</.*?>', '', text)
+
+        def rejoin(split_list: List[str]):
+            nonlocal result
+            single_list = []
+            for index, item in enumerate(split_list):
+                if len(item) == 1:
+                    single_list.append([index, item])
+            result = single_join(single_list)
+            single_dict = dict(result)
+            # 替换操作
+            for i, val in enumerate(split_list):
+                if i in single_dict:  # 注意索引从1开始
+                    split_list[i] = single_dict[i]
+            filter_list = [item for item in split_list if len(item) != 1]
+            return filter_list
+
+        def process_cell(value:str) -> List:
+            # 判断是否是纯英文字符
+            is_en_name = re.match(r'^[a-zA-Z\s]+$', value)
+
+            # 删除文中标签
+            value = remove_html_tags(value)
+            # 多个连续空格转换成一个
+            value = re.sub(r'\s+', ' ', value)
+            # 多种分隔符统一为,号
+            value = re.sub(r'；;，', ',', value)
+
+            if ',' in value:
+                if not is_en_name:
+                    value = value.replace(' ', '')
+                return value.split(',')
+            elif is_en_name:
+                return [value]
+            elif ' ' in value:
+                if is_two_chinese(value):
+                    return [value.replace(' ', '')]
+                else:
+                    return rejoin(value.split(' '))
+            else:
+                return [value]
+
+        process_data = data[self.column_name].fillna('').apply(lambda x: process_cell(str(x)))
+        stacked_reset = process_data.apply(pd.Series).stack().reset_index(level=1, drop=True).to_frame("cn_name")
+        # 删除原表中的 `cn_name` 列
+        data = data.drop(columns=['cn_name'])
+        result = stacked_reset.merge(data, left_index=True, right_index=True, how='left')
+        return result
+
+class EnNameSplitOperation(SpecificOperationStrategy):
+    def __init__(self, column_name: str, split_rule: str):
+        self.column_name = column_name
+        self.split_rule = split_rule
+
+
+
+    def exec(self, data: DataFrame) -> DataFrame:
+        def remove_html_entities(text: str) -> str:
+            # 匹配 HTML 实体编码
+            pattern = r'&[a-zA-Z0-9#]+;'
+            return re.sub(pattern, '', text)
+
+        def process_cell(value: str) -> List:
+
+            value = remove_html_entities(value)
+            # 删除文中标签
+            value = re.sub(r'and', ' ', value)
+            # 多个连续空格转换成一个
+            value = re.sub(r'\s+', ' ', value)
+            # 多种分隔符统一为,号
+            value = re.sub(r'；;，', ',', value)
+
+            return value.split(',')
+
+        process_data = data[self.column_name].fillna('').apply(lambda x: process_cell(str(x)))
+        stacked_reset = process_data.apply(pd.Series).stack().reset_index(level=1, drop=True).to_frame("en_name")
+        # 删除原表中的 `en_name` 列
+        data = data.drop(columns=['en_name'])
+        result = stacked_reset.merge(data, left_index=True, right_index=True, how='left')
+        return result
+
+
 class DefaultValueOperation(SpecificOperationStrategy):
     """
     设置默认值策略
@@ -146,7 +259,7 @@ class DefaultValueOperation(SpecificOperationStrategy):
                 data[k] = v
         return data
 
-class DateReplaceOperation(SpecificOperationStrategy):
+class StrReplaceOperation(SpecificOperationStrategy):
     """
     字符串替换策略, 通过构造方法控制传参，保持exec标准化
     """
@@ -162,6 +275,16 @@ class DateReplaceOperation(SpecificOperationStrategy):
             for k,v in list_item.items():
                 data[k] = data[k].replace(v[0], v[1])
             return data
+
+class ReSubstringStrStrategy(SpecificOperationStrategy):
+    def __init__(self, column_name:str, pattern: re.Pattern):
+        self.column_name = column_name
+        self.pattern = pattern
+
+
+    def exec(self, data: DataFrame) -> DataFrame:
+        data[self.column_name] = data[self.column_name].fillna('').apply(lambda x: re.sub(self.pattern, '', x.strip()) if x else '')
+        return data
 
 class TableJoinOperation(SpecificOperationStrategy):
     def __init__(self, join_df: DataFrame,  left_columns: Union[str, List], right_columns: Union[str, List], how:Literal["left", "right", "inner", "outer", "cross"]='left') -> None:
@@ -182,7 +305,6 @@ class TableJoinOperation(SpecificOperationStrategy):
                 df.drop(columns=f"{column}_y", axis=1, inplace=True, errors='ignore')
                 df.rename(columns={f"{column}_x":column}, inplace=True)
         return df
-
 
 class CompositeOperation(SpecificOperationStrategy):
     """
@@ -218,4 +340,5 @@ class KeywordSplitOperation(SpecificOperationStrategy):
 
 if __name__ == '__main__':
     # achievement_main()
-    pass
+    ps = '张  磊'
+    print(ord(ps[1]))
