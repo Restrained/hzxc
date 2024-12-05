@@ -72,10 +72,10 @@ class MongoInfo(Mongo):
         while True:
             # 利用聚合操作查询，利用生成器逐段返回
             _pipeline: list[dict] = []
-            projection and _pipeline.append({"$project": projection})
-            sort_condition and _pipeline.append({"$sort": sort_condition})
-            group and _pipeline.append({"$group": group})
             query and _pipeline.append({"$match": query})
+            group and _pipeline.append({"$group": group})
+            sort_condition and _pipeline.append({"$sort": sort_condition})
+            projection and _pipeline.append({"$project": projection})
             last_id and _pipeline.append({"$match": {"_id": {"$gt": last_id}}})
             _pipeline.append({"$limit": count})
 

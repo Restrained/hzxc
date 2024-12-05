@@ -30,6 +30,14 @@ def get_base_url(url: str) -> str:
     :param url: 完整的 URL 地址
     :return: 只包含协议和域名的基础 URL
     """
+    # 如果没有协议头，添加默认的 HTTP 协议
+    if not urlparse(url).scheme:
+        url = 'http://' + url
+
     parsed_url = urlparse(url)
     base_url = f'{parsed_url.scheme}://{parsed_url.netloc}'
     return base_url
+
+if __name__ == '__main__':
+    href = "http://jlxb.china-csm.org:81/"
+    print(get_base_url(href))
