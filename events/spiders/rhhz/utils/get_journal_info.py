@@ -29,6 +29,6 @@ def add_category_info(input_file, output_file):
 if __name__ == '__main__':
     get_journal_info(r"D:\output\csv\article_info.csv", r"D:\output\csv\journal_info.csv", "仁和汇智")
     # add_category_info(
-    #     input_file=r"D:\output\csv\journal_info.csv",
-    #     output_file=r"D:\output\csv\journal_info_v2.csv"
+    #     input_file=r"D:\output\csv_data\journal_info.csv_data",
+    #     output_file=r"D:\output\csv_data\journal_info_v2.csv_data"
     # )

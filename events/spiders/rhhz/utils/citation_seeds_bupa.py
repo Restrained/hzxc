@@ -43,10 +43,10 @@ def find_unmatched_rows(csv1_path, csv2_path, csv1_key, csv2_key, output_path=No
 
 if __name__ == '__main__':
     find_unmatched_rows(
-        r"/events/modules/rhhz/seeds/citation_seeds.csv",
+        r"/events/modules/rhhz/seeds/citation_seeds.csv_data",
         r"C:\Users\PY-01\Documents\local\renHeHuiZhi\citation_info_v2.csv",
         ['article_id', 'journal_title'],
         ['article_id', 'journal_title'],
-        output_path=r'/events/modules\chineseoptics\seeds\citation_seeds_bupa.csv'
+        output_path=r'/events/modules\chineseoptics\seeds\citation_seeds_bupa.csv_data'
 
     )

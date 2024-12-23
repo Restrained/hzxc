@@ -68,6 +68,7 @@ class ArchiveViewing(template.Spider):
                         'Accept': 'text/html, */*; q=0.01',
                         'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
                         'Connection': 'keep-alive',
+                        'Cookie': 'guardok=pUXUpZn90o4Fi6F6n94rIFQbBe9bU2HyZw5YmBs029gQnpacv4+/Cn+arYGxL9OAw59InWLXT1MWKdQO0C1rhw==; ASP.NET_SessionId=s1tizc033xedcc0uatxmlxbj',
                         'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
                         'Origin': '{domain}',
                         'Referer': '{domain}/CN/home',
@@ -198,9 +199,8 @@ class ArchiveViewing(template.Spider):
         html = response.text
         soup = BeautifulSoup(html, "html.parser")
         info_table = navigate_table(soup)
-        # if info_table is None:
 
-        """<table class="table table-striped table-hover table-bordered text-center" style="width:99%">"""
+
         tr_list = info_table.find_all("tr")
         year_title, year, volume = '', '', ''
         for tr_tags in tr_list:

@@ -51,6 +51,7 @@ class CSVFile:
         self._mapping_list = None
         self._primary_key = None
         self._columns = None
+        self._drop_columns = None
         self.file_path = file_path
         self.data: DataFrame = pd.read_csv(file_path)
 
@@ -110,6 +111,16 @@ class CSVFile:
         if not isinstance(value, str):
             raise TypeError("parameter type must be dict")
         self._output_path = value
+
+    @property
+    def drop_columns(self) -> list:
+        return self._drop_columns
+
+    @drop_columns.setter
+    def drop_columns(self, value: str):
+        if not isinstance(value, list):
+            raise TypeError("parameter drop_columns must be list")
+        self._drop_columns = value
 
     @property
     def replace_column_info(self):

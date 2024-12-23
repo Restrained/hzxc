@@ -59,18 +59,18 @@ def clean_fund(input_file, output_file):
 
 if __name__ == '__main__':
     # clean_authors(
-    #     r"D:\output\csv\author_info.csv",
-    #     r"D:\output\csv\author_info_clean.csv",
+    #     r"D:\output\csv_data\author_info.csv_data",
+    #     r"D:\output\csv_data\author_info_clean.csv_data",
     # )
 
     # clean_institution(
-    #     r"D:\output\csv\institution_info.csv",
-    #     r"D:\output\csv\institution_info_clean.csv",
+    #     r"D:\output\csv_data\institution_info.csv_data",
+    #     r"D:\output\csv_data\institution_info_clean.csv_data",
     # )
 
     # clean_author_institution_sets(
-    #     r"D:\output\csv\institution_info.csv",
-    #     r"D:\output\csv\institution_info_clean.csv",
+    #     r"D:\output\csv_data\institution_info.csv_data",
+    #     r"D:\output\csv_data\institution_info_clean.csv_data",
     # )
 
     clean_fund(

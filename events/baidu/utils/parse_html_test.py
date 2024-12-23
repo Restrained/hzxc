@@ -19,8 +19,8 @@ def parse_html_from_file(file_path):
     for div in divs:
         # 检查是否包含 <span>官方</span>
         if div.find('span', string='官方'):
-            # 在包含“官方”的 div 中查找 data-module 为 "lgsoe" 的子 div
-            target_div = div.find('div', {'data-module': 'lgsoe'})
+            # 在包含“官方”的 div 中查找 csv_data-module 为 "lgsoe" 的子 div
+            target_div = div.find('div', {'csv_data-module': 'lgsoe'})
 
 
             if target_div:

@@ -54,7 +54,7 @@ class DownloadPDF(template.Spider):
 
                     func=by_csv,
                     kwargs={
-                        'path': r"D:\pyProject\hzcx\renHeHuiZhi\chineseoptics\seeds\pdf_seeds.csv",
+                        'path': r"D:\pyProject\hzcx\renHeHuiZhi\chineseoptics\seeds\pdf_seeds.csv_data",
                         'query': 'select article_id, title, doi, year, issue, journal_title, journal_abbrev, pdf_link from <TABLE>',
                         'batch_size': 5000
 
@@ -152,7 +152,7 @@ class DownloadPDF(template.Spider):
         if seeds['$config'] == 1:
             seeds = context.seeds
             pdf_link = seeds['pdf_link']
-            url = self.extract_domain_and_path(pdf_link) + "/data/article/export-pdf"
+            url = self.extract_domain_and_path(pdf_link) + "/csv_data/article/export-pdf"
 
             request.url = url
 

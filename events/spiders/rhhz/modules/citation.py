@@ -34,7 +34,7 @@ class Citation(template.Spider):
                 template.Init(
                     func=by_csv,
                     kwargs={
-                        "path": r"D:\pyProject\hzcx\renHeHuiZhi\chineseoptics\seeds\citation_seeds.csv",
+                        "path": r"D:\pyProject\hzcx\renHeHuiZhi\chineseoptics\seeds\citation_seeds.csv_data",
                         "query": "select article_id, doi, journal_title, issn, domain as officialWebsite from <TABLE>",
                         "batch_size": 5000
                     }

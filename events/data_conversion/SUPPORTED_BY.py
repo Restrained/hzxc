@@ -17,7 +17,7 @@ def get_supported_info(input_file1, input_file2, output_file):
 
 if __name__ == '__main__':
     get_supported_info(
-        input_file1=r"C:\Users\PY-01\Documents\local\renHeHuiZhi\article_info.csv",
-        input_file2=r"D:\output\csv\funds_info.csv",
+        input_file1=r"C:\Users\PY-01\Documents\local\renHeHuiZhi\article_info.csv_data",
+        input_file2=r"D:\output\csv_data\funds_info.csv_data",
         output_file=r"D:\output\csv\SUPPORTED_BY.csv"
     )

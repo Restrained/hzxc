@@ -126,7 +126,7 @@ class ArchiveViewing(template.Spider):
                         "response.status_code == 500": signals.Pass}
                 ),
                 template.Download(
-                    url="{domain}/data/article/archive-list-data",
+                    url="{domain}/csv_data/article/archive-list-csv_data",
                     method="POST",
                     params={
                         "publisherId": "{journal_abbrev}"
@@ -267,7 +267,7 @@ class ArchiveViewing(template.Spider):
     def _parse_json(context: template.Context) -> List:
         seeds = context.seeds
         response = context.response
-        data = response.get('data', [])
+        data = response.get('csv_data', [])
 
         if not data:
             return []

@@ -37,8 +37,8 @@ def filter_and_save_csv(file1, file2, output_file, key_column="pdf_link"):
 
 
 if __name__ == '__main__':
-    file1 = r"C:\Users\PY-01\Documents\local\renHeHuiZhi\article_info_v2.csv"
-    file2 = r"C:\Users\PY-01\Documents\local\renHeHuiZhi\download_pdf_log.csv"
-    output_file = r'/events/modules\chineseoptics\seeds\pdf_seeds.csv'
+    file1 = r"C:\Users\PY-01\Documents\local\renHeHuiZhi\article_info_v2.csv_data"
+    file2 = r"C:\Users\PY-01\Documents\local\renHeHuiZhi\download_pdf_log.csv_data"
+    output_file = r'/events/modules\chineseoptics\seeds\pdf_seeds.csv_data'
 
     filter_and_save_csv(file1, file2, output_file)

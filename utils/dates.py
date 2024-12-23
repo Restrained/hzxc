@@ -38,4 +38,23 @@ def timestamp_to_date(ts):
     return date_obj.strftime("%Y-%m-%d")
 
 
+from datetime import datetime
+
+
+def format_date(date_str: str) -> str:
+    """
+    将日期字符串 'YYYY-MM-DD HH:MM:SS' 转换为 'YYYY-MM-DD' 格式。
+
+    :param date_str: 输入的日期时间字符串
+    :return: 格式化后的日期字符串
+    """
+
+    if not date_str:
+        return ""
+    # 解析字符串为 datetime 对象
+    dt = datetime.strptime(date_str, '%Y-%m-%d %H:%M:%S')
+
+    # 格式化为所需的日期格式
+    return dt.strftime('%Y-%m-%d')
+
 

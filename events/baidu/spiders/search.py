@@ -45,7 +45,7 @@ class Search(template.Spider):
 
                     func=by_csv,
                     kwargs={
-                        'path': r"D:\pyProject\hzcx\baidu\input\csv\search_seeds.csv",
+                        'path': r"D:\pyProject\hzcx\baidu\input\csv_data\search_seeds.csv_data",
                         'query': 'select nameOfTheJournal as searchWord, ISSN, libraryID  from <TABLE>',
                         'batch_size': 5000
 
@@ -162,8 +162,8 @@ class Search(template.Spider):
         for div in divs:
             # 检查是否包含 <span>官方</span>
             if div.find('span', string='官方'):
-                # 在包含“官方”的 div 中查找 data-module 为 "lgsoe" 的子 div
-                target_div = div.find('div', {'data-module': 'lgsoe'})
+                # 在包含“官方”的 div 中查找 csv_data-module 为 "lgsoe" 的子 div
+                target_div = div.find('div', {'csv_data-module': 'lgsoe'})
 
                 if target_div:
                     url_div = target_div.find('div', class_='single-text')

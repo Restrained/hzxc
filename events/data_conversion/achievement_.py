@@ -3,7 +3,7 @@
 # @Time    : 2024/11/23 17:21
 # @Author  : AllenWan
 # @File    : achievement_.py
-import csv
+import csv_data
 from tkinter.constants import FIRST
 
 import pandas as pd
@@ -60,7 +60,7 @@ def process_data(input_file, output_file):
     data_rows = result_df.fillna("").astype(str).apply("⌘".join, axis=1)
 
     # 合并列名和数据
-    final_result = pd.DataFrame([column_names] + data_rows.tolist(), columns=["data"])
+    final_result = pd.DataFrame([column_names] + data_rows.tolist(), columns=["csv_data"])
 
     # 直接将处理好的数据写入文本文件
     with open(output_file, 'w', encoding='utf-8') as f:
@@ -70,7 +70,7 @@ def process_data(input_file, output_file):
             row_data = '⌘'.join(map(str, row))  # 将每一行的数据用 "⌘" 分隔
             f.write(row_data + '\n')  # 逐行写入
     # # 保存到输出文件
-    # final_result.to_csv(output_file, index=False, header=False, quoting=csv.QUOTE_NONE, escapechar=None, quotechar='')
+    # final_result.to_csv(output_file, index=False, header=False, quoting=csv_data.QUOTE_NONE, escapechar=None, quotechar='')
     # print(f"处理后的数据已保存至: {output_file}")
 
 if __name__ == '__main__':

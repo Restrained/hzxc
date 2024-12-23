@@ -50,6 +50,6 @@ def process_csv_and_get_redirected_urls(input_file: str, output_file: str):
 
 
 # 示例使用
-input_file = r'/events/journalClassification\output\output_v3.csv'  # 输入文件路径
-output_file = r'/events/journalClassification\output\output_v3_redirect.csv'  # 输出文件路径
+input_file = r'/events/journalClassification\output\output_v3.csv_data'  # 输入文件路径
+output_file = r'/events/journalClassification\output\output_v3_redirect.csv_data'  # 输出文件路径
 process_csv_and_get_redirected_urls(input_file, output_file)

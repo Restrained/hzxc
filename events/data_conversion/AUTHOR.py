@@ -3,7 +3,7 @@
 # @Time    : 2024/11/25 11:44
 # @Author  : AllenWan
 # @File    : AUTHOR.py
-import csv
+import csv_data
 
 import pandas as pd
 
@@ -30,7 +30,7 @@ def merge_author_columns(input_file, output_file):
     column_rows = "⌘".join(df_renamed.columns)
     data_rows = df_renamed.fillna("").astype(str).apply("⌘".join, axis=1)
 
-    result = pd.DataFrame([column_rows] + data_rows.tolist(), columns=["data"])
+    result = pd.DataFrame([column_rows] + data_rows.tolist(), columns=["csv_data"])
 
     # 直接将处理好的数据写入文本文件
     with open(output_file, 'w', encoding='utf-8') as f:
@@ -40,7 +40,7 @@ def merge_author_columns(input_file, output_file):
             row_data = '⌘'.join(map(str, row))  # 将每一行的数据用 "⌘" 分隔
             f.write(row_data + '\n')  # 逐行写入
 
-    # result.to_csv(output_file, index=False, quoting=csv.QUOTE_NONE, escapechar='\\')
+    # result.to_csv(output_file, index=False, quoting=csv_data.QUOTE_NONE, escapechar='\\')
 
 
 if __name__ == '__main__':

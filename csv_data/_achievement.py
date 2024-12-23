@@ -9,8 +9,8 @@ from typing import Literal
 
 import loguru
 
-from events.data_conversion.file import CSVFile
-from events.data_conversion.operation import CSVProcessor, SpecificOperationStrategy, CompositeOperation, \
+from csv_data.file import CSVFile
+from csv_data.operation import CSVProcessor, SpecificOperationStrategy, CompositeOperation, \
     DefaultValueOperation, StrReplaceOperation, DuplicateOperation, KeywordSplitOperation, TableJoinOperation
 
 

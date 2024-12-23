@@ -16,7 +16,7 @@ def get_citation_seeds(input_file1, input_file2, output_file):
     merged.to_csv(output_file, index=False)
 
 if __name__ == '__main__':
-    input_file1 = r"C:\Users\PY-01\Documents\local\renHeHuiZhi\citation_info\find_query.csv"
-    input_file2 = r"D:\output\csv\journal_website_info.csv"
-    output_file = r"/events/modules/rhhz/seeds/citation_seeds.csv"
+    input_file1 = r"C:\Users\PY-01\Documents\local\renHeHuiZhi\citation_info\find_query.csv_data"
+    input_file2 = r"D:\output\csv_data\journal_website_info.csv_data"
+    output_file = r"/events/modules/rhhz/seeds/citation_seeds.csv_data"
     get_citation_seeds(input_file1, input_file2, output_file)

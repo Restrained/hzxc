@@ -98,7 +98,7 @@ def get_company_name_from_sld(url):
         json_data = response.json()
 
         # 检查返回的data中的id和subId字段
-        data = json_data.get("data", {})
+        data = json_data.get("csv_data", {})
         if data:
             if data.get("id") != 6 and data.get("subId") != "0":
                 return "北京北大方正电子有限公司"
@@ -167,12 +167,12 @@ def compare_and_extract(input_file, result_file, unmatched_output_file):
 
     # 保存未匹配的数据到新的CSV文件
     unmatched_df.to_csv(unmatched_output_file, index=False)
-    print(f"Unmatched data saved to {unmatched_output_file}")
+    print(f"Unmatched csv_data saved to {unmatched_output_file}")
 
 
 if __name__ == "__main__":
     # 示例调用
-    process_csv_with_sld(r'/events/journalClassification/input/raw_data_v3.csv',
-                         r'/events/journalClassification\output\output_v4.csv')
-    # process_csv_with_sld(r'D:\pyProject\hzcx\journalClassification\input\raw_data_v2.csv', r'D:\pyProject\hzcx\journalClassification\output\output_v2.csv')
-    # compare_and_extract(r'D:\pyProject\hzcx\journalClassification\input\raw_data.csv', r'D:\pyProject\hzcx\journalClassification\output\output_v3.csv', r"D:\pyProject\hzcx\journalClassification\input\raw_data_v3.csv")
+    process_csv_with_sld(r'/events/journalClassification/input/raw_data_v3.csv_data',
+                         r'/events/journalClassification\output\output_v4.csv_data')
+    # process_csv_with_sld(r'D:\pyProject\hzcx\journalClassification\input\raw_data_v2.csv_data', r'D:\pyProject\hzcx\journalClassification\output\output_v2.csv_data')
+    # compare_and_extract(r'D:\pyProject\hzcx\journalClassification\input\raw_data.csv_data', r'D:\pyProject\hzcx\journalClassification\output\output_v3.csv_data', r"D:\pyProject\hzcx\journalClassification\input\raw_data_v3.csv_data")

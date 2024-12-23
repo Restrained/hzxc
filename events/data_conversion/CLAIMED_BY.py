@@ -25,7 +25,7 @@ def get_claimed_info(input_file1, input_file2, output_file):
 
 if __name__ == "__main__":
     get_claimed_info(
-        input_file1=r"D:\output\csv\article_info.csv",
-        input_file2=r"D:\output\csv\author_info_id.csv",
+        input_file1=r"D:\output\csv_data\article_info.csv_data",
+        input_file2=r"D:\output\csv_data\author_info_id.csv_data",
         output_file=r"D:\output\csv\CLAIMED_BY.csv"
     )

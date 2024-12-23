@@ -6,7 +6,7 @@ conn = sqlite3.connect('your_database.db')
 cursor = conn.cursor()
 
 # 读取 CSV 数据
-df = pd.read_csv(r'/events/baidu/input/csv/search_seeds.csv')
+df = pd.read_csv(r'/events/baidu/input/csv_data/search_seeds.csv_data')
 
 # 创建表
 cursor.execute('''CREATE TABLE IF NOT EXISTS table_name (col1 TEXT, col2 INTEGER, ...)''')

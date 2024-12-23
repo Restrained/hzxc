@@ -22,6 +22,8 @@ from bricks.spider import template
 from bricks.spider.template import Config
 from bs4 import BeautifulSoup
 
+from config.config_info import RedisConfig, MongoConfig
+from db.mongo import MongoInfo
 from utils.dates import timestamp_to_date
 
 
@@ -29,9 +31,19 @@ class ArticleInfo(template.Spider):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         # 种子、存储配置定义
-        self.redis = Redis()
-        self.mongo = Mongo(
-            database='modules',
+        self.redis = Redis(
+            host=RedisConfig.host,
+            port=RedisConfig.port,
+            password=base64.b64decode(RedisConfig.password).decode("utf-8"),
+            database=RedisConfig.database,
+        )
+        self.mongo = MongoInfo(
+            host=MongoConfig.host,
+            port=MongoConfig.port,
+            username=base64.b64decode(MongoConfig.username).decode("utf-8"),
+            password=base64.b64decode(MongoConfig.password).decode("utf-8"),
+            database=MongoConfig.database,
+            auth_database=MongoConfig.auth_database
         )
 
     @property
@@ -41,8 +53,8 @@ class ArticleInfo(template.Spider):
                 template.Init(
                     func=by_csv,
                     kwargs={
-                        "path": r"D:\pyProject\hzcx\renHeHuiZhi\chineseoptics\seeds\journal_list.csv",
-                        "query": "select article_id, officialWebsite, article_url from <TABLE> where article_url != '' ",
+                        "path": r"C:\Users\PY-01\Documents\withingking\spider\article_list_incremental.csv_data",
+                        "query": "select article_id, domain,  article_url from <TABLE> where article_url != '' ",
                         "batch_size": 5000
                     }
                 )
@@ -54,7 +66,7 @@ class ArticleInfo(template.Spider):
                         'Accept': 'application/json, text/plain, */*',
                         'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
                         'Content-Length': '0',
-                        'Origin': '{officialWebsite}',
+                        'Origin': '{domain}',
                         'Proxy-Connection': 'keep-alive',
                         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36 Edg/130.0.0.0'
                     },
@@ -214,7 +226,7 @@ class ArticleInfo(template.Spider):
         article_meta_search = re.search(article_meta_pattern, response.text)
 
         # 构造附件pdf下载链接
-        pdf_link = f"{seeds['officialWebsite']}/article/exportPdf?id={article_id}"
+        pdf_link = f"{seeds['domain']}/article/exportPdf?id={article_id}"
 
         if article_meta_search:
             article_meta_data_base64 = article_meta_search.group(1)
@@ -280,7 +292,7 @@ class ArticleInfo(template.Spider):
 
                         author_name_cn_list = safe_find_text_list(authors_cn, "li", 'a')
                         author_code_cn_list = safe_find_text_list(authors_cn, "li", 'sup')
-                        author_mail_cn_list = safe_find_text_list(authors_cn, "li", 'a', attr_name='data-relate')
+                        author_mail_cn_list = safe_find_text_list(authors_cn, "li", 'a', attr_name='csv_data-relate')
                         author_name_en_list = safe_find_text_list(authors_en, "li", 'a')
 
 
@@ -519,7 +531,7 @@ class ArticleInfo(template.Spider):
             author_code_cn_list = list(filter(None, author_code_cn_list))
             if not author_code_cn_list:
                 author_code_cn_list = safe_find_text_list(authors_cn, "li", 'sup')
-            author_mail_cn_list = safe_find_text_list(authors_cn, "li", 'a', attr_name='data-relate')
+            author_mail_cn_list = safe_find_text_list(authors_cn, "li", 'a', attr_name='csv_data-relate')
             author_mail_cn_list = list(filter(None, author_mail_cn_list))
             author_name_en_list = safe_find_text_list(authors_en, "li", 'a')
             author_name_en_list = list(filter(None, author_name_en_list))
@@ -898,9 +910,15 @@ if __name__ == '__main__':
         concurrency=100,
         **{"init.queue.size": 1000000},
         download=requests_.Downloader,
-        task_queue=RedisQueue(),
+        task_queue=RedisQueue(
+            host=RedisConfig.host,
+            port=RedisConfig.port,
+            password=base64.b64decode(RedisConfig.password).decode("utf-8"),
+            database=RedisConfig.database,
+        ),
     )
-    # spider.run(task_name='spider')
-    spider.survey({'article_id': '20030418', 'article_url': 'http://www.chinjmap.com/cn/article/id/20030418', 'officialWebsite': 'http://www.chinjmap.com', '$config': 0})
+    # spider.run(task_name='init')
+    print(ArticleInfo.__module__)
+    # spider.survey({'article_id': '20030418', 'article_url': 'http://www.chinjmap.com/cn/article/id/20030418', 'domain': 'http://www.chinjmap.com', '$config': 0})
     # 'https://zlxb.zafu.edu.cn/article/id/1456'
     # 'https://plantscience.cn/cn/article/doi/10.3724/SP.J.1142.2010.30365'

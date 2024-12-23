@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 # @Time    : 2024/11/14 10:11
 # @Author  : AllenWan
-# @File    : list_of_journals.py
+# @File    : article_list.py
 import base64
 import re
 import time
@@ -52,7 +52,7 @@ class JournalList(template.Spider):
                 template.Init(
                     func=by_csv,
                     kwargs={
-                        "path": r"D:\pyProject\hzcx\renHeHuiZhi\chineseoptics\seeds\archive_viewing_list.csv",
+                        "path": r"D:\pyProject\hzcx\renHeHuiZhi\chineseoptics\seeds\archive_viewing_list.csv_data",
                         "query": "select year, issue, issue_href, journal_title, domain, publisher_id, batch_id  from <TABLE> ",
                         "batch_size": 2000
                     }
@@ -77,7 +77,7 @@ class JournalList(template.Spider):
                     ok={"response.status_code == 500": signals.Pass, "response.status_code == 404": signals.Pass}
                 ),
                 template.Download(
-                    url="{domain}/data/article/archive-article-data",
+                    url="{domain}/csv_data/article/archive-article-csv_data",
                     method="POST",
                     params={
                         "issue": "{issue}",
@@ -106,7 +106,7 @@ class JournalList(template.Spider):
                     func="json",
                     kwargs={
                         "rules": {
-                            "data.articles": {
+                            "csv_data.articles": {
                                 "article_id": "id",
                                 "article_url": "doi",
                                 "year": "year",
@@ -145,6 +145,7 @@ class JournalList(template.Spider):
                         func=self.is_success,
                     )
                 ]
+
             }
         )
 
@@ -215,6 +216,8 @@ class JournalList(template.Spider):
             # time.sleep(3000)
 
         return result
+
+
 
 
 if __name__ == '__main__':

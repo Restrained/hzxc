@@ -62,7 +62,7 @@ def process_table1_with_authors(table1_file, table2_file, output_file):
 
 if __name__ == '__main__':
     input_file = r"D:\output\csv\article_info.csv"
-    input_file2 = r"D:\output\csv\author_info_id.csv"
+    input_file2 = r"D:\output\csv_data\author_info_id.csv_data"
     output_file = r'D:\output\csv\achievement_info.csv'
 
     process_table1_with_authors(input_file, input_file2, output_file)

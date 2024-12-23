@@ -27,7 +27,7 @@ def get_funds(input_file,output_file):
     df_join = df[["id", "cn_funds", "en_funds"]].fillna("").astype(str).apply("⌘".join, axis=1)
     colunmn_name = "⌘".join(["id", "name", "en_name"])
 
-    result = pd.DataFrame([colunmn_name] + df_join.tolist(), columns=["data"])
+    result = pd.DataFrame([colunmn_name] + df_join.tolist(), columns=["csv_data"])
 
 
 

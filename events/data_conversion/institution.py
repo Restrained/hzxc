@@ -34,7 +34,7 @@ def process_csv(file_path, output_path):
     data_rows = df.fillna("").astype(str).apply("⌘".join, axis=1)
 
     # 合并列名和数据
-    result = pd.DataFrame([column_names] + data_rows.tolist(), columns=["data"])
+    result = pd.DataFrame([column_names] + data_rows.tolist(), columns=["csv_data"])
 
     # 保存到新的 CSV 文件
     # result.to_csv(output_path, index=False,encoding="utf-8-sig")

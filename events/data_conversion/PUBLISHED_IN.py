@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+  #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # @Time    : 2024/11/26 09:15
 # @Author  : AllenWan
@@ -36,5 +36,5 @@ def get_published_info(input_file1, input_file2, output_file):
 
 if __name__ == '__main__':
     get_published_info(
-        input_file1=r"C:\Users\PY-01\Documents\local\renHeHuiZhi\article_info.csv", input_file2=r"D:\output\csv\venue_info.csv", output_file=r"D:\output\csv\PUBLISHED_IN.csv"
+        input_file1=r"C:\Users\PY-01\Documents\local\renHeHuiZhi\article_info.csv_data", input_file2=r"D:\output\csv_data\venue_info.csv_data", output_file=r"D:\output\csv\PUBLISHED_IN.csv_data"
     )

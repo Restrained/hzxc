@@ -6,17 +6,14 @@
 # @Desc    ：该代码使用结合模板方法模式与策略模式
 import html
 import re
-import time
 import uuid
 from abc import ABC, abstractmethod
-from inspect import stack
-from typing import Union, Any, TypeVar, List, Literal
+from typing import Union, TypeVar, List, Literal
 
-import loguru
 import pandas as pd
 from bs4 import BeautifulSoup
 from pandas import DataFrame
-from events.data_conversion.file import CSVFile
+from csv_data.file import CSVFile
 
 T = TypeVar('T', bound=DataFrame)
 
@@ -29,9 +26,9 @@ class CSVProcessor(ABC):
         对象构造方法
         :param csv_file: CSVFile
         """
+        self.join_df = None
         self.csv_file = csv_file
         self.data: Union[T, None] = self.csv_file.data
-        self._id = None
 
 
     def rename_columns(self):
@@ -83,14 +80,13 @@ class CSVProcessor(ABC):
 
 
 
-    def drop_columns(self, columns):
+    def drop_columns(self):
         """
         删除指定列
-        :param columns:
         :return:
         """
         if self.data is not None:
-            self.data.drop(columns=columns, inplace=True)
+            self.data.drop(columns=self.csv_file.drop_columns, inplace=True)
 
 
     def add_random_id(self, column_name: str = "id") -> None:
@@ -102,6 +98,14 @@ class CSVProcessor(ABC):
             lambda _: str(uuid.uuid4()).replace("-", "")[:24], axis=1
         )
 
+    def join_columns(self):
+        # 将所有列用 ⌘ 连接
+        column_names = "⌘".join(self.data.columns)
+        data_rows = self.data.fillna("").astype(str).apply("⌘".join, axis=1)
+
+        # 合并列名和数据
+        self.join_df = pd.DataFrame([column_names] + data_rows.tolist(), columns=["csv_data"])
+
     def output_file(self, index=False, encoding="utf-8-sig"):
         """
         输出一个处理后的文件到指定路径
@@ -109,7 +113,19 @@ class CSVProcessor(ABC):
         :param encoding:
         :return:
         """
-        self.data.to_csv(self.csv_file.output_path, index=index, encoding=encoding)
+        if self.join_df is None:
+            output_df = self.data
+        else:
+            output_df = self.join_df
+
+        with open(self.csv_file.output_path, 'w', encoding='utf-8') as f:
+            for row in output_df.itertuples(index=False, name=None):
+                # 将每一行的列数据按需要格式化并写入
+                # 假设数据是 JSON 格式化的字符串，先去掉可能存在的双引号转义
+                row_data = '⌘'.join(map(str, row))  # 将每一行的数据用 "⌘" 分隔
+                f.write(row_data + '\n')  # 逐行写入
+
+
 
 
 class SpecificOperationStrategy(ABC):

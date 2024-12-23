@@ -6,8 +6,8 @@
 # @Desc    ：
 import re
 
-from events.data_conversion.file import CSVFile
-from events.data_conversion.operation import SpecificOperationStrategy, CSVProcessor, CompositeOperation, \
+from csv_data.file import CSVFile
+from csv_data.operation import SpecificOperationStrategy, CSVProcessor, CompositeOperation, \
      ReSubstringStrStrategy, CnNameSplitOperation, EnNameSplitOperation
 
 
