@@ -201,20 +201,20 @@ class ArticleInfo(template.Spider):
         keywords_list = response.get("keyword")
         for keyword_item in keywords_list:
             if keyword_item.get("lang") == "zh":
-                keyword_data = keyword_item.get("csv_data")
+                keyword_data = keyword_item.get("data")
                 for data in keyword_data:
-                    keyword = data[0].get("csv_data")
+                    keyword = data[0].get("data")
                     keywords.append(keyword)
             elif keyword_item.get("lang") == "en":
-                keyword_data = keyword_item.get("csv_data")
+                keyword_data = keyword_item.get("data")
                 for data in keyword_data:
-                    en_keyword = data[0].get("csv_data")
+                    en_keyword = data[0].get("data")
                     en_keywords.append(en_keyword)
 
         citation_list = []
         ref_list = response.get("reflist")
         if ref_list:
-            ref_data = ref_list.get("csv_data")
+            ref_data = ref_list.get("data")
             for data in ref_data:
                 citation_order = data.get("id")
                 citation_label = data.get("label")
@@ -223,12 +223,12 @@ class ArticleInfo(template.Spider):
                 citation_lang = citation[0].get("lang")
                 text_list = citation[0].get("text")
                 for texts in text_list:
-                    text = texts.get("csv_data")
+                    text = texts.get("data")
                     name = texts.get("name")
                     if name == "text":
                         if isinstance(text, list):
                             for item in text:
-                                inner_text = item['csv_data']
+                                inner_text = item['data']
                                 citation_content += inner_text
                         else:
                             citation_content += text
@@ -250,7 +250,7 @@ class ArticleInfo(template.Spider):
             if funding_item.get("lang") == "zh":
                 text = funding_item.get("text")
                 for inner_item in text:
-                    fund_txt = inner_item.get("csv_data")
+                    fund_txt = inner_item.get("data")
                     fund = fund_txt.split('；')
                     for fund_item in fund:
                         fund_info.append(
@@ -454,7 +454,7 @@ if __name__ == '__main__':
     }
 
     spider = ArticleInfo(
-        concurrency=50,
+        concurrency=10,
         # downloader=requests_.Downloader(),
         **{"init.queue.size": 5000000},
         task_queue=RedisQueue(

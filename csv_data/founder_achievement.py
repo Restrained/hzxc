@@ -27,6 +27,7 @@ class OperationStrategy(CSVProcessor):
     整体操作为流式执行，不支持异步
 
     """
+
     def __init__(self, csv_file: CSVFile, strategy: SpecificOperationStrategy):
         super().__init__(csv_file)
         self.strategy = strategy
@@ -53,57 +54,207 @@ class OperationStrategy(CSVProcessor):
         loguru.logger.info(f"self.rename_columns()重命名操作完成，耗时：{rename_columns_end_time - fill_na_end_time:.6f}")
         loguru.logger.info("*" * 100)
 
-
-
         self.specific_operation()
         specific_operation_end_time = time.time()
-        loguru.logger.info(f"self.specific_operation()特定操作集合操作完成，耗时：{specific_operation_end_time - rename_columns_end_time:.6f}")
+        loguru.logger.info(
+            f"self.specific_operation()特定操作集合操作完成，耗时：{specific_operation_end_time - rename_columns_end_time:.6f}")
         loguru.logger.info("*" * 100)
 
+        self.filter_columns()
         self.join_columns()
 
         self.output_file()
         output_file_end_time = time.time()
-        loguru.logger.info(f"self.batch_clean_text_end_time()输出文件操作完成，耗时：{output_file_end_time - specific_operation_end_time:.6f}")
+        loguru.logger.info(
+            f"self.batch_clean_text_end_time()输出文件操作完成，耗时：{output_file_end_time - specific_operation_end_time:.6f}")
         loguru.logger.info("*" * 100)
 
 
+class Files:
+    file_list = [
+        {
+            "input_file_path": r"D:\pyProject\hzcx\db\utils\founder_article_info.csv",
+            "output_path": r"D:\pyProject\hzcx\db\utils\founder_article_info_output.csv",
+            "mapping_list": {
+                "article_id": "id",
+                "article_title": "title",
+                "en_article_title": "en_title"
+            },
+            "drop_columns": ["_id"],
+            "default_value_list": [{"status": 0}],
+            "primary_key": ["id", "source"],
+            "columns":  ["id", "title", "en_title", "doi", "authors", "source", "abstracts", "en_abstracts",
+                                "keywords", "en_keywords", "lang", "status", "type", "publish_date"],
+        },
+        {
+            "input_file_path": r"D:\pyProject\hzcx\db\utils\founder_author_info.csv",
+            "output_path": r"D:\pyProject\hzcx\db\utils\founder_author_info_output.csv",
+            "mapping_list": {
+                "author_id": "id",
+                "author_name": "name",
+                "en_author_name": "en_name",
+                "about_author": "profile"
+            },
+            "drop_columns": ["_id"],
+            "default_value_list": [{"type": 0}],
+            "primary_key": ["id"],
 
+            "columns": ["id",
+                               "name",
+                               "en_name",
+                               "type",
+                               "email",
+                               "profile",
+                               "orc_id",
+                               ],
+        },
+        {
+            "input_file_path": r"D:\pyProject\hzcx\db\utils\founder_fund_info.csv",
+            "output_path": r"D:\pyProject\hzcx\db\utils\founder_fund_info_output.csv",
+            "mapping_list": {
+                "fund_id": "id",
+                "fund_name": "name",
+            },
+            "drop_columns": ["_id"],
+            "primary_key": ["id"],
 
-def main():
-    achievement_file_path = r"D:\pyProject\hzcx\output\founder_article_info.csv"
-    achievement = CSVFile(file_path=achievement_file_path)
+            "columns": ["id",
+                               "name",
+                               "en_name",
+                               ],
+        },
+        {
+            "input_file_path": r"D:\pyProject\hzcx\db\utils\founder_institution_info.csv",
+            "output_path": r"D:\pyProject\hzcx\db\utils\founder_institution_info_output.csv",
+            "mapping_list": {
+                "aff_name": "name",
+                "en_aff_name": "en_name",
+            },
+            "drop_columns": ["_id"],
+            "primary_key": ["id"],
 
+            "columns": ["id",
+                       "institution_id",
+                       "name",
+                       "en_name",
+                       "location",
+                               ],
+        },
+        {
+            "input_file_path": r"D:\pyProject\hzcx\db\utils\founder_venue.csv",
+            "output_path": r"D:\pyProject\hzcx\db\utils\founder_venue_output.csv",
+            "mapping_list": {
 
-    # 指定列重命名
-    achievement.mapping_list = {
-        "article_id": "id",
-        "title": "article_title",
-        "en_article_title": "en_title"
-    }
+                "journal_id": "id",
+                "journal_title": "name",
+            },
+            "drop_columns": ["_id"],
+            "primary_key": ["id"],
 
-    achievement.primary_key = ["id", "source"]
-    achievement.drop_columns = ["_id"]
-    achievement.default_value_list = [{"status": 0}]
+            "columns": ["id",
+                        "name",
+                        "en_name",
+                        "type",
+                        ],
+        },
+        {
+            "input_file_path": r"D:\pyProject\hzcx\db\utils\founder_publish.csv",
+            "output_path": r"D:\pyProject\hzcx\db\utils\founder_publish_output.csv",
+            "mapping_list": {
+                "author_id": "id",
 
+            },
+            "drop_columns": ["_id"],
+            "primary_key": ["id", "achievement_id"],
+            "columns": ["id",
+                        "achievement_id",
+                        "order_of_authors",
+                        "corresponding_author",
+                        ],
+        },
+        {
+            "input_file_path": r"D:\pyProject\hzcx\db\utils\founder_published_in.csv",
+            "output_path": r"D:\pyProject\hzcx\db\utils\founder_published_in_output.csv",
+            "mapping_list": {
+                "achievement_id": "id",
 
-    achievement.output_path=r"D:\pyProject\hzcx\output\founder_article_info_output.csv"
+            },
+            "drop_columns": ["_id"],
+            "primary_key": ["id", "journal_id"],
 
-    achievement_strategy = CompositeOperation([
-        DefaultValueOperation(achievement.default_value_list),
-        DuplicateOperation(primary_key=achievement.primary_key),
-    ])
+            "columns": ["id",
+                        "journal_id",
+                        "year",
+                        "volume",
+                        "period",
+                        "page_range",
+                        ],
+        },
+        {
+            "input_file_path": r"D:\pyProject\hzcx\db\utils\founder_claimed_by.csv",
+            "output_path": r"D:\pyProject\hzcx\db\utils\founder_claimed_by_output.csv",
+            "mapping_list": {
+                "achievement_id": "id",
+            },
+            "drop_columns": ["_id"],
+            "primary_key": ["id", "institution_id"],
 
-    achievement.output_columns = [
-        "id", "title", "en_title", "doi", "authors", "source", "abstracts", "en_abstracts",
-        "keywords", "en_keywords", "lang", "status","type", "publish_date",
+            "columns": ["id",
+                        "institution_id",
+                        ],
+        },
+        {
+            "input_file_path": r"D:\pyProject\hzcx\db\utils\founder_supported_by.csv",
+            "output_path": r"D:\pyProject\hzcx\db\utils\founder_supported_by_output.csv",
+            "mapping_list": {
+                "achievement_id": "id",
 
+            },
+            "drop_columns": ["_id"],
+            "primary_key": ["id", "fund_id"],
+
+            "columns": ["id",
+                        "fund_id",
+
+                        ],
+        },
+        {
+            "input_file_path": r"D:\pyProject\hzcx\db\utils\founder_work_at.csv",
+            "output_path": r"D:\pyProject\hzcx\db\utils\founder_work_at_output.csv",
+            "mapping_list": {
+                "author_id":"id",
+            },
+            "drop_columns": ["_id"],
+            "primary_key": ["id", "institution_id"],
+
+            "columns": ["id",
+                        "institution_id",
+                        ],
+        },
     ]
 
 
-    achievement_processor = OperationStrategy(achievement, achievement_strategy)
-    achievement_processor.process()
-    achievement_processor.output_file()
+def main():
+    for file_info in Files.file_list:
+        achievement = CSVFile(file_path=file_info["input_file_path"])
+
+        achievement.columns = file_info["columns"]
+        achievement.drop_columns = file_info["drop_columns"]
+        achievement.mapping_list = file_info["mapping_list"]
+        achievement.output_path = file_info["output_path"]
+
+        if file_info.get("default_value_list"):
+            achievement_strategy = CompositeOperation([
+                DefaultValueOperation(file_info["default_value_list"]),
+                DuplicateOperation(primary_key=file_info["primary_key"]),
+            ])
+        else:
+            achievement_strategy = CompositeOperation([
+                DuplicateOperation(primary_key=file_info["primary_key"]),
+            ])
+        achievement_processor = OperationStrategy(achievement, achievement_strategy)
+        achievement_processor.process()
+        achievement_processor.output_file()
 
 
 if __name__ == '__main__':

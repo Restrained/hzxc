@@ -38,12 +38,12 @@ class CSVProcessor(ABC):
         """
         self.data = self.data.rename(columns=self.csv_file.mapping_list)
 
-    def filter_columns(self, columns:List[str]):
+    def filter_columns(self):
         """
         根据输入的列名列表过滤出特定的列
         :return:
         """
-        self.data = self.data[columns]
+        self.data = self.data[self.csv_file.columns]
 
     def fill_na(self):
         """
@@ -106,11 +106,10 @@ class CSVProcessor(ABC):
         # 合并列名和数据
         self.join_df = pd.DataFrame([column_names] + data_rows.tolist(), columns=["csv_data"])
 
-    def output_file(self, index=False, encoding="utf-8-sig"):
+    def output_file(self):
         """
         输出一个处理后的文件到指定路径
-        :param index:
-        :param encoding:
+
         :return:
         """
         if self.join_df is None:
