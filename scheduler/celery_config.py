@@ -11,6 +11,10 @@ from celery import Celery
 from celery import Celery
 from celery.schedules import crontab
 
+
+# 导入任务模块
+from tasks import run_spider  # 确保这个路径正确
+
 # 初始化 Celery 实例，指定任务队列的 broker（使用 Redis）
 app = Celery('spider', broker='redis://:Hzxc2023@192.168.0.41:16379/9')
 
