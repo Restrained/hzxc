@@ -4,10 +4,9 @@
 # @Author  : AllenWan
 # @File    : test.py
 # @Desc    ：
-from celery import Celery
 
-app = Celery('tasks', broker='redis://localhost:6379/0')
 
-@app.task
-def add(x, y):
-    return x + y
+from tasks import run_spider
+
+result = run_spider.delay()  # 异步调用任务
+print(result.get())       # 获取任务结果
