@@ -25,7 +25,7 @@ app.autodiscover_tasks(['scheduler.tasks'])
 # 配置定时任务，每分钟执行一次任务
 app.conf.beat_schedule = {
     'run-spider-daily': {
-        'task': 'tasks.run_spider',
+        'task': 'scheduler.tasks.run_spider',
         'schedule': crontab(hour='0', minute="0"),  # 每60秒运行一次
     },
 }
