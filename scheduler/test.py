@@ -6,7 +6,7 @@
 # @Desc    ：
 
 
-from tasks import run_spider
+from scheduler.tasks import run_spider
 
 result = run_spider.delay()  # 异步调用任务
 print(result.get())       # 获取任务结果
