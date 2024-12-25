@@ -12,8 +12,8 @@ from bricks.lib.queues import RedisQueue
 from celery_config import app
 import time
 
-# from config.config_info import RedisConfig
-# from events.spiders.rhhz.modules.article_incremental import ArticleIncrementalCrawler
+from config.config_info import RedisConfig
+from events.spiders.rhhz.modules.article_incremental import ArticleIncrementalCrawler
 
 @app.task
 def run_spider():
