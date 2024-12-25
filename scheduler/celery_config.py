@@ -20,7 +20,7 @@ app = Celery('spider', broker='redis://:Hzxc2023@192.168.0.41:16379/9')
 app.conf.result_backend = 'redis://:Hzxc2023@192.168.0.41:16379/9'
 
 # 自动发现任务模块中的任务
-app.autodiscover_tasks(['tasks'])
+app.autodiscover_tasks(['scheduler.tasks'])
 
 # 配置定时任务，每分钟执行一次任务
 app.conf.beat_schedule = {
