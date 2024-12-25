@@ -57,10 +57,9 @@ def post_process():
 
 # 任务链
 @app.task
-def chain_task():
-    result = chain(
-    run_spider.si(),    # si() 确保任务签名独立
-    post_process.si(),
-
-)
-    return result
+def run_spider_chain():
+    # 调用任务链
+    chain(
+        run_spider.si(),
+        post_process.si(),
+    ).apply_async()

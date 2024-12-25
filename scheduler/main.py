@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 # @Time    : 2024/12/24 17:18
 # @Author  : AllenWan
-# @File    : test.py
+# @File    : main.py
 # @Desc    ：
 from celery import chain
 
@@ -13,8 +13,8 @@ from scheduler.tasks import run_spider, post_process
 
 # 通过调用链式任务来启动爬虫
 chain_task = chain(
-    run_spider.s(),
-    post_process.s(),
+    run_spider.si(),
+    post_process.si(),
 
 )
 chain_task.apply_async()

@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 # @Time    : 2024/11/23 09:21
 # @Author  : AllenWan
-# @File    : test.py
+# @File    : main.py
 import requests
 import json
 

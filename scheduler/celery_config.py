@@ -28,8 +28,8 @@ app.conf.beat_schedule = {
         'task': 'scheduler.tasks.run_spider',
         'schedule': crontab(hour='0', minute="0"),  # 每60秒运行一次
     },
-    'run-spider-every-minute': {
-        'task': 'scheduler.tasks.run_spider',
+    'run-spider-everyday': {
+        'task': 'scheduler.tasks.run_spider_chain',  # 你定义的任务链任务
         'schedule': 60.0,  # 每60秒运行一次
     },
 }
