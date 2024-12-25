@@ -276,6 +276,7 @@ class ArticleIncrementalCrawler(template.Spider):
                 return True
         raise Failure
 
+
     # # 定义调度任务
     # def schedule_crawler_task(task_name, concurrency, init_queue_size):
     #     downloader = "dummy_downloader"  # 这里可以根据需求换成实际的下载器
