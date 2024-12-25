@@ -12,7 +12,7 @@ from celery import Celery
 from celery.schedules import crontab
 
 # 初始化 Celery 实例，指定任务队列的 broker（使用 Redis）
-app = Celery('spider', broker='redis://localhost:6379/0')
+app = Celery('spider', broker='redis://:Hzxc2023@192.168.0.41:16379/9')
 
 # 配置 Celery 的结果存储（可以使用 Redis 或其他存储）
 app.conf.result_backend = 'redis://localhost:6379/0'
