@@ -16,7 +16,7 @@ import time
 from config.config_info import RedisConfig
 from events.spiders.rhhz.modules.article_incremental import ArticleIncrementalCrawler
 
-@app.task
+@app.task(ignore_result=True)
 def run_spider():
     """
     启动爬虫接口
@@ -48,7 +48,7 @@ def run_spider():
 
     return 'Spider Finished'
 
-@app.task
+@app.task(ignore_result=True)
 def post_process():
     logger.info("后续任务执行")
     # 后处理逻辑，比如数据保存到数据库等
