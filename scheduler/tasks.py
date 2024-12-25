@@ -5,6 +5,7 @@
 # @File    : tasks.py
 # @Desc    ：
 # tasks.py
+from celery import chain
 from loguru import logger
 from bricks.downloader import requests_
 from bricks.lib.queues import RedisQueue
@@ -57,5 +58,9 @@ def post_process():
 # 任务链
 @app.task
 def chain_task():
-    result = run_spider.apply_async(link=post_process.s())
+    result = chain(
+    run_spider.si(),    # si() 确保任务签名独立
+    post_process.si(),
+
+)
     return result
