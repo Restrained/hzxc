@@ -5,16 +5,25 @@
 # @File    : tasks.py
 # @Desc    ：
 # tasks.py
+import base64
+from datetime import timedelta
+
+from bricks.db.mongo import Mongo
 from celery import chain
+from celery.result import AsyncResult
 from loguru import logger
 from bricks.downloader import requests_
 from bricks.lib.queues import RedisQueue
+from pymongo import MongoClient
 
 from celery_config import app
 import time
 
-from config.config_info import RedisConfig
+from config.config_info import RedisConfig, MongoConfig
+from db.mongo import MongoInfo
 from events.spiders.rhhz.modules.article_incremental import ArticleIncrementalCrawler
+from notice.feishu import FeiShu
+
 
 @app.task(ignore_result=True)
 def run_spider():
@@ -25,28 +34,96 @@ def run_spider():
     # 打印说明
     logger.info(f"启动爬虫任务：{time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())}")
 
-    # # 初始化爬虫
-    # spider = ArticleIncrementalCrawler(
-    #     concurrency=1,
-    #     **{
-    #         "init_queue_size": 1000000
-    #     },
-    #     downloader=requests_.Downloader(),
-    #     task_queue=RedisQueue(
-    #         host=RedisConfig.host,
-    #         port=RedisConfig.port,
-    #         password=RedisConfig.password,
-    #         database=RedisConfig.database
-    #     )
-    # )
-    #
-    # # 启动爬虫
-    # spider.run()
+    # 初始化爬虫
+    spider = ArticleIncrementalCrawler(
+        concurrency=1,
+        **{
+            "init_queue_size": 1000000
+        },
+        downloader=requests_.Downloader(),
+        task_queue=RedisQueue(
+            host=RedisConfig.host,
+            port=RedisConfig.port,
+            password=RedisConfig.password,
+            database=RedisConfig.database
+        )
+    )
+
+    # 启动爬虫
+    spider.run(task_name="all")
 
     # 爬虫完成后执行下一个任务
     # loguru.logger.info(f"爬虫任务完成，开始下一个任务：{time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())}")
 
     return 'Spider Finished'
+
+@app.task
+def monitor_task(task_id):
+    logger.info(f"监控任务启动，监控爬虫任务{task_id}")
+    mongo = MongoInfo(
+        host=MongoConfig.host,
+        port=MongoConfig.port,
+        username=base64.b64decode(MongoConfig.username).decode("utf-8"),
+        password=base64.b64decode(MongoConfig.password).decode("utf-8"),
+        database=MongoConfig.database,
+        auth_database=MongoConfig.auth_database
+    )
+    while True:
+        # 获取爬虫任务结果
+        result = AsyncResult(task_id)
+        if result.ready():
+            if result.successful():
+                logger.info("爬虫任务执行成功，监控停止")
+            else:
+                logger.warning(f"爬虫任务失败， 错误信息： {result.result}")
+            break
+        else:
+            logger.info("爬虫任务还在执行，继续监控......")
+
+            # 当前时间
+            current_time = int(time.time() * 1000)
+
+            # 过去5分钟的时间
+            past_5_minutes = current_time - 2 * 60 * 1000
+
+            check_data_changes(mongo, past_5_minutes, current_time, collection_name="article_list_incremental",
+                               column_name="time_stamp")
+            time.sleep(2 * 60)
+
+
+
+def send_msg(msg: str, title: str) -> None:
+    notice_instance = FeiShu()
+    notice_instance.send(msgs=msg, title=title)
+
+# 数据库查询（暂时从mongo中查询）
+def check_data_changes(client:MongoClient, start_time: int, end_time: int, collection_name: str, column_name: str):
+    db = client[MongoConfig.database]  # 替换为实际的数据库名
+    collection = db[collection_name]  # 替换为实际的集合名
+    query_result = collection.count_documents(
+        filter={
+            column_name: {
+                "$gte": start_time,  # >= 过去5分钟的时间戳
+                "$lte": end_time  # <= 当前时间戳
+            }}
+    )
+    if query_result == 0:
+        msg = f"增量爬取数据增长异常，请及时修复"
+        title = "增量爬取监控"
+        send_msg(msg, title)
+
+    return query_result
+
+@app.task
+def run_spider_with_monitor():
+    # 启动爬虫任务
+
+    spider_task = run_spider.apply_async()
+
+    # 启动监控任务，传递爬虫任务的ID, 120秒后延迟启动
+    monitor_task.apply_async(args=[spider_task.id], countdown=2*60)
+
+
 
 @app.task(ignore_result=True)
 def post_process():
@@ -63,3 +140,4 @@ def run_spider_chain():
         run_spider.si(),
         post_process.si(),
     ).apply_async()
+

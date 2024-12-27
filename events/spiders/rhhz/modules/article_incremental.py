@@ -4,7 +4,7 @@
 # @Author  : AllenWan
 # @File    : article_incremental.py
 # @Desc    ：
-import argparse
+
 import base64
 import re
 import time
@@ -18,6 +18,7 @@ from bricks.core import signals
 from bricks.core.signals import Success, Failure
 from bricks.db.redis_ import Redis
 from bricks.downloader import requests_
+from bricks.downloader.playwright_ import Downloader
 from bricks.lib.queues import RedisQueue
 
 from bricks.plugins.storage import to_mongo
@@ -38,6 +39,7 @@ class ArticleIncrementalCrawler(template.Spider):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+
         # 种子、存储配置定义
         self.redis = Redis(
             host=RedisConfig.host,
@@ -75,18 +77,25 @@ class ArticleIncrementalCrawler(template.Spider):
                 template.Download(
                     url="{domain}/cn/article/current",
                     headers={
-                        'Accept': 'application/json, text/plain, */*',
-                        'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
+                        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+                        'Accept-Language': 'zh-CN,zh;q=0.9',
                         'Connection': 'keep-alive',
-                        'Content-Length': '0',
-                        'Sec-Fetch-Site': 'same-origin',
-                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36 Edg/130.0.0.0'
+                        'Sec-Fetch-Dest': 'document',
+                        'Sec-Fetch-Mode': 'navigate',
+                        'Sec-Fetch-Site': 'none',
+                        'Sec-Fetch-User': '?1',
+                        'Upgrade-Insecure-Requests': '1',
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+                        'sec-ch-ua': '"Google Chrome";v="131", "Chromium";v="131", "Not_A Brand";v="24"',
+                        'sec-ch-ua-mobile': '?0',
+                        'sec-ch-ua-platform': '"Windows"'
                     },
                     ok={
                         "response.status_code in (404, 500)": signals.Pass,
                     },
                     max_retry=2,
                     timeout=10,
+                    use_session=True
                 ),
                 template.Download(
                     url="{domain}/{journal_abbrev}/cn/article/current",
@@ -105,7 +114,8 @@ class ArticleIncrementalCrawler(template.Spider):
                     timeout=10,
                 ),
                 template.Download(
-                    url="{domain}/csv_data/article/current-csv_data",
+                    # url="{domain}/csv_data/article/current-csv_data",
+                    url="{domain}/data/article/current-data",
                     method="POST",
                     params={"publisherId": "{journal_abbrev}"},
                     headers={
@@ -113,7 +123,7 @@ class ArticleIncrementalCrawler(template.Spider):
                         'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8,en-GB;q=0.7,en-US;q=0.6',
                         'Connection': 'keep-alive',
                         'Content-Length': '0',
-                        'Cookie': '_sowise_user_sessionid_=4e898c50-dbc9-4f6b-b1f3-e34e8ff8cbdf; JSESSIONID=2938706F8D43AF5F247B24CBB69C426E',
+                        'Cookie': '_sowise_user_sessionid_=4e898c50-dbc9-4f6b-b1f3-e34e8ff8cbdf; JSESSIONID=83122BCBFC31DE6FC6E0C909C9253CD5',
                         'Origin': '{domain}',
                         'Referer': '{domain}/{journal_abbrev}',
                         'Sec-Fetch-Dest': 'empty',
@@ -140,7 +150,7 @@ class ArticleIncrementalCrawler(template.Spider):
                     func="json",
                     kwargs={
                         "rules": {
-                            "csv_data.articles": {
+                            "data.articles": {
                                 "article_id": "id",
                                 "article_url": "doi",
                                 "year": "year",
@@ -200,11 +210,17 @@ class ArticleIncrementalCrawler(template.Spider):
     def _parse(self, context: Context) -> List[dict]:
         def extract_year_issue(text) -> tuple:
             nonlocal year, volume, issue
-            pattern = re.compile(r"(\d{4}),\s*?(\d+)\s*\((\w+|[\u4e00-\u9fa5]+)\)")
-            match = re.search(pattern, text)
-            if match:
-                year, volume, issue = match.groups()
+
+            normal_pattern = re.compile(r"(\d{4}),\s*?(\d+)\s*\((\w+|[\u4e00-\u9fa5]+)\)")
+            specific_pattern = re.compile(r"(\d{4})[,\s]*?\((\w+|[\u4e00-\u9fa5]+)\):")
+            normal_match = re.search(normal_pattern, text)
+            specific_match = re.search(specific_pattern, text)
+            if normal_match:
+                year, volume, issue = normal_match.groups()
                 return year, volume, issue
+            elif specific_match:
+                year, issue = specific_match.groups()
+                return year, '', issue
 
         result = []
 
@@ -257,16 +273,18 @@ class ArticleIncrementalCrawler(template.Spider):
         seeds = context.seeds
         response = context.response
         journal_title = seeds["journal_title"]
+
+        if journal_title in SPECIAL_JOURNAL_LIST and seeds["$config"] != 2:
+            context.submit({**seeds, "$config": 2})
+            raise Success
+
         if seeds["$config"] in (0, 1):
             if any([
                 "404" in response.url,
                 response.status_code == 404,
                 "errorMsgData" in response.text
-                ]):
-                context.submit({**seeds, "$config": 1})
-                raise Success
-            elif journal_title in SPECIAL_JOURNAL_LIST:
-                context.submit({**seeds, "$config": 2})
+            ]):
+                context.submit({**seeds, "$config": seeds["$config"] + 1})
                 raise Success
 
             if 'article-list' in response.text:
@@ -276,50 +294,6 @@ class ArticleIncrementalCrawler(template.Spider):
                 return True
         raise Failure
 
-
-    # # 定义调度任务
-    # def schedule_crawler_task(task_name, concurrency, init_queue_size):
-    #     downloader = "dummy_downloader"  # 这里可以根据需求换成实际的下载器
-    #     task_queue = "dummy_task_queue"  # 这里可以换成实际的队列实现
-    #
-    #     spider = ArticleIncrementalCrawler(
-    #         concurrency=concurrency,
-    #         init_queue_size=init_queue_size,
-    #         downloader=downloader,
-    #         task_queue=task_queue
-    #     )
-    #
-    #     # 调用爬虫的 run 方法执行任务
-    #     spider.run(task_name)
-
-    # 设置定时任务
-    # def setup_schedule(task_name, concurrency, init_queue_size, interval_minutes):
-    #     schedule.every(interval_minutes).minutes.do(schedule_crawler_task, task_name=task_name, concurrency=concurrency,
-    #                                                 init_queue_size=init_queue_size)
-    #
-    #     print(f"Scheduled task '{task_name}' to run every {interval_minutes} minutes.")
-    #
-    #     # 循环保持任务运行
-    #     while True:
-    #         schedule.run_pending()
-    #         time.sleep(1)
-    #
-    # # 解析命令行参数
-    # def parse_arguments():
-    #     parser = argparse.ArgumentParser(description="Run the article crawler with dynamic parameters.")
-    #     parser.add_argument("--task_name", type=str, required=True, help="Name of the crawling task.")
-    #     parser.add_argument("--concurrency", type=int, default=1, help="Number of concurrent requests.")
-    #     parser.add_argument("--init_queue_size", type=int, default=1000000, help="Initial queue size.")
-    #     parser.add_argument("--interval", type=int, default=60, help="Interval in minutes for running the crawler.")
-    #
-    #     return parser.parse_args()
-
-    # if __name__ == "__main__":
-    #     # 获取命令行参数
-    #     args = parse_arguments()
-    #
-    #     # 设置定时任务
-    #     setup_schedule(args.task_name, args.concurrency, args.init_queue_size, args.interval)
 
 def get_incremental_seed():
     mongo = MongoInfo(
@@ -380,10 +354,25 @@ def get_incremental_seed():
     for journal, data in result.items():
         print(f"Journal: {journal}, Max Year: {data['max_year']}, Max Issue: {data['max_issue']}")
 
+
 if __name__ == '__main__':
+    proxy = {
+        'ref': "bricks.lib.proxies.RedisProxy",
+        'key': 'proxy_21',
+        'options': {'host': '1.14.193.46', 'password': 'sandalwood_SWA_2021-06-01!'},
+        "threshold": 10,
+        # "scheme": "socks5"
+
+        # 'ref': "bricks.lib.proxies.CustomProxy",
+        # # 'key': "115.223.31.91:34428",
+        # 'key': "127.0.0.1:7897",
+        # # "threshold": 10,
+        # # "scheme": "socks5"
+    }
     spider = ArticleIncrementalCrawler(
         concurrency=1,
         **{"init_queue_size": 1000000},
+        queue_name="article_incremental",
         downloader=requests_.Downloader(),
         task_queue=RedisQueue(
             host=RedisConfig.host,
@@ -391,11 +380,12 @@ if __name__ == '__main__':
             password=base64.b64decode(RedisConfig.password).decode("utf-8"),
             database=RedisConfig.database,
         ),  # 定义种子来源
+        # proxy=proxy
 
     )
 
-    # spider.run(task_name="all")
-    get_incremental_seed()
-    # spider.survey({"$config": 2, "_id": "674ff6cc9cb944477dc09db4", "batch_id": "2024-12-06", "category": "仁和汇智",
-    #                "domain": "https://www.whuhzzs.com", "issn": "2096-7993", "journal_abbrev": "lceh",
-    #                "journal_title": "临床耳鼻咽喉头颈外科杂志"})
+    spider.run(task_name="all")
+
+
+    # get_incremental_seed()
+    # spider.survey({"_id": "674ff6cc9cb944477dc09e00", "batch_id": "2024-12-27", "category": "仁和汇智", "domain": "http://www.trtb.net", "issn": "0564-3945", "journal_abbrev": "trtb", "journal_title": "土壤通报"})

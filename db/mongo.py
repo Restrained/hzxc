@@ -3,9 +3,23 @@
 # @Time    : 2024/11/27 10:05
 # @Author  : AllenWan
 # @File    : mongo.py
+import base64
 from typing import Optional, List, Iterable
 
 from bricks.db.mongo import Mongo
+from pymongo import MongoClient
+
+from config.config_info import MongoConfig
+
+
+class MetaClient:
+    host = MongoConfig.host
+    port = MongoConfig.port
+    auth_database = MongoConfig.auth_database
+    username = base64.b64decode(MongoConfig.username).decode("utf-8")
+    password = base64.b64decode(MongoConfig.password).decode("utf-8")
+    client  = MongoClient(f"mongodb://{username}:{password}@{host}:{port}/{auth_database}")
+
 
 
 class MongoInfo(Mongo):
