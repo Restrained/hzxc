@@ -47,6 +47,12 @@ class ArticleIncrementalCrawler(template.Spider):
             password=base64.b64decode(RedisConfig.password).decode("utf-8"),
             database=RedisConfig.database,
         )
+        self.task_queue=RedisQueue(
+            host=RedisConfig.host,
+            port=RedisConfig.port,
+            password=base64.b64decode(RedisConfig.password).decode("utf-8"),
+            database=RedisConfig.database,
+        )
         self.mongo = MongoInfo(
             host=MongoConfig.host,
             port=MongoConfig.port,
@@ -374,12 +380,7 @@ if __name__ == '__main__':
         **{"init_queue_size": 1000000},
         queue_name="article_incremental",
         downloader=requests_.Downloader(),
-        task_queue=RedisQueue(
-            host=RedisConfig.host,
-            port=RedisConfig.port,
-            password=base64.b64decode(RedisConfig.password).decode("utf-8"),
-            database=RedisConfig.database,
-        ),  # 定义种子来源
+
         # proxy=proxy
 
     )

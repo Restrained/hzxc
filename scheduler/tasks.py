@@ -13,7 +13,6 @@ from celery import chain
 from celery.result import AsyncResult
 from loguru import logger
 from bricks.downloader import requests_
-from bricks.lib.queues import RedisQueue
 from pymongo import MongoClient
 
 from celery_config import app
@@ -40,12 +39,7 @@ def run_spider():
         **{"init_queue_size": 1000000},
         queue_name="article_incremental",
         downloader=requests_.Downloader(),
-        task_queue=RedisQueue(
-            host=RedisConfig.host,
-            port=RedisConfig.port,
-            password=base64.b64decode(RedisConfig.password).decode("utf-8"),
-            database=RedisConfig.database,
-        ),  # 定义种子来源
+
         # proxy=proxy
 
     )
