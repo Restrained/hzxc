@@ -34,21 +34,21 @@ def run_spider():
     # 打印说明
     logger.info(f"启动爬虫任务：{time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())}")
 
-    # 初始化爬虫
+
     spider = ArticleIncrementalCrawler(
         concurrency=1,
-        **{
-            "init_queue_size": 1000000
-        },
+        **{"init_queue_size": 1000000},
+        queue_name="article_incremental",
         downloader=requests_.Downloader(),
         task_queue=RedisQueue(
             host=RedisConfig.host,
             port=RedisConfig.port,
             password=base64.b64decode(RedisConfig.password).decode("utf-8"),
-            database=RedisConfig.database
-        )
-    )
+            database=RedisConfig.database,
+        ),  # 定义种子来源
+        # proxy=proxy
 
+    )
     # 启动爬虫
     spider.run(task_name="all")
 

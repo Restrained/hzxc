@@ -384,7 +384,7 @@ if __name__ == '__main__':
 
     )
 
-    spider.run(task_name="all")
+    spider.run(task_name="init")
 
 
     # get_incremental_seed()
