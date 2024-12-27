@@ -44,7 +44,7 @@ def run_spider():
         task_queue=RedisQueue(
             host=RedisConfig.host,
             port=RedisConfig.port,
-            password=RedisConfig.password,
+            password=base64.b64decode(RedisConfig.password).decode("utf-8"),
             database=RedisConfig.database
         )
     )
