@@ -6,9 +6,7 @@
 # @Desc    ：
 # tasks.py
 import base64
-from datetime import timedelta
 
-from bricks.db.mongo import Mongo
 from celery import chain
 from celery.result import AsyncResult
 from loguru import logger
