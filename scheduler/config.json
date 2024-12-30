@@ -1,5 +1,5 @@
 {
-    "task_name": "init",
+    "task_name": "spider",
     "concurrency": 1,
     "queue_name": "article_incremental",
     "init_queue_size": 1000000
