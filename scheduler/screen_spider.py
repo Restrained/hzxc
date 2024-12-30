@@ -18,7 +18,7 @@ def run_spider_in_screen(task_name, concurrency, queue_name, init_queue_size):
         f'workon bricks && python3 -c "from events.spiders.rhhz.modules.article_incremental import ArticleIncrementalCrawler; '
         f'spider = ArticleIncrementalCrawler(concurrency={concurrency}, '
         f'init_queue_size={init_queue_size}, '
-        f'queue_name=\'{queue_name}\', '
+        f'queue_name=\'{queue_name}\');'
         f'spider.run(task_name=\'{task_name}\')"'
     ]
 
