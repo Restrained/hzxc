@@ -24,6 +24,7 @@ def run_spider_in_screen(task_name, concurrency, queue_name, init_queue_size):
     ]
 
     # 使用 subprocess 启动screen会话并执行任务
+    print("1111")
     print(' '.join(command))
     subprocess.run(command, check=True)
     print(f"爬虫任务已启动，在独立的 screen 会话中运行，任务名: {task_name}, 并发数: {concurrency}, 队列名: {queue_name}")
