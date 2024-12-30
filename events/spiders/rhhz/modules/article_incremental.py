@@ -18,7 +18,6 @@ from bricks.core import signals
 from bricks.core.signals import Success, Failure
 from bricks.db.redis_ import Redis
 from bricks.downloader import requests_
-from bricks.downloader.playwright_ import Downloader
 from bricks.lib.queues import RedisQueue
 
 from bricks.plugins.storage import to_mongo

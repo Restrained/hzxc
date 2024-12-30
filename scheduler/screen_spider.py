@@ -19,7 +19,6 @@ def run_spider_in_screen(task_name, concurrency, queue_name, init_queue_size):
         f'spider = ArticleIncrementalCrawler(concurrency={concurrency}, '
         f'init_queue_size={init_queue_size}, '
         f'queue_name=\'{queue_name}\', '
-        f'downloader=requests_.Downloader()); '
         f'spider.run(task_name=\'{task_name}\')"'
     ]
 
