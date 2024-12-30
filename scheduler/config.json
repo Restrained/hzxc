@@ -1,0 +1,6 @@
+{
+    "task_name": "init",
+    "concurrency": 1,
+    "queue_name": "article_incremental",
+    "init_queue_size": 1000000
+}

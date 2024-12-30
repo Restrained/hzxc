@@ -6,6 +6,7 @@
 # @Desc    ：
 # tasks.py
 import base64
+import subprocess
 
 from celery import chain
 from celery.result import AsyncResult
@@ -28,7 +29,7 @@ def run_spider():
     启动爬虫接口
     :return:
     """
-    # 打印说明
+    # # 打印说明
     logger.info(f"启动爬虫任务：{time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())}")
 
 
@@ -43,6 +44,22 @@ def run_spider():
     )
     # 启动爬虫
     spider.run(task_name="all")
+
+    """
+      启动爬虫接口，通过 screen 启动任务
+      :return:
+      """
+    # 打印说明
+    logger.info(f"启动爬虫任务：{time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())}")
+
+    # 设置screen会话的名字
+    session_name = f"spider_task_{int(time.time())}"  # 使用时间戳作为唯一标识
+    command = f"screen -dmS {session_name} python -c 'from your_crawler_module import ArticleIncrementalCrawler; from your_downloader_module import requests_; spider = ArticleIncrementalCrawler(concurrency=1, init_queue_size=1000000, queue_name=\"article_incremental\", downloader=requests_.Downloader()); spider.run(task_name=\"all\")'"
+
+    # 使用 subprocess 启动 screen 会话并执行爬虫
+    subprocess.run(command, shell=True)
+
+    logger.info(f"爬虫任务已启动，screen 会话名: {session_name}")
 
     # 爬虫完成后执行下一个任务
     # loguru.logger.info(f"爬虫任务完成，开始下一个任务：{time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())}")
@@ -79,7 +96,7 @@ def monitor_task(task_id):
             past_5_minutes = current_time - 2 * 60 * 1000
 
             check_data_changes(mongo, past_5_minutes, current_time, collection_name="article_list_incremental",
-                               column_name="time_stamp")
+                               column_name="time_stamp", task_id=task_id)
             time.sleep(2 * 60)
 
 
@@ -89,7 +106,7 @@ def send_msg(msg: str, title: str) -> None:
     notice_instance.send(msgs=msg, title=title)
 
 # 数据库查询（暂时从mongo中查询）
-def check_data_changes(client:MongoClient, start_time: int, end_time: int, collection_name: str, column_name: str):
+def check_data_changes(client:MongoClient, start_time: int, end_time: int, collection_name: str, column_name: str, task_id):
     db = client[MongoConfig.database]  # 替换为实际的数据库名
     collection = db[collection_name]  # 替换为实际的集合名
     query_result = collection.count_documents(
@@ -101,7 +118,7 @@ def check_data_changes(client:MongoClient, start_time: int, end_time: int, colle
     )
     if query_result == 0:
         msg = f"增量爬取数据增长异常，请及时修复"
-        title = "增量爬取监控"
+        title = f"增量爬取监控,任务id：{task_id}"
         send_msg(msg, title)
 
     return query_result

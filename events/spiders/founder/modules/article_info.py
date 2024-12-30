@@ -454,7 +454,7 @@ if __name__ == '__main__':
     }
 
     spider = ArticleInfo(
-        concurrency=10,
+        concurrency=50,
         # downloader=requests_.Downloader(),
         **{"init.queue.size": 5000000},
         task_queue=RedisQueue(
