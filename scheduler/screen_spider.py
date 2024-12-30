@@ -15,7 +15,7 @@ def run_spider_in_screen(task_name, concurrency, queue_name, init_queue_size):
     command = [
         'screen', '-dmS', screen_session_name,  # 启动后台屏幕会话
         'bash', '-c',  # 执行bash命令
-        f'workon bricks && python3 -c "from spider_module import ArticleIncrementalCrawler; '
+        f'workon bricks && python3 -c "from events.spiders.rhhz.modules.article_incremental import ArticleIncrementalCrawler; '
         f'spider = ArticleIncrementalCrawler(concurrency={concurrency}, '
         f'init_queue_size={init_queue_size}, '
         f'queue_name=\'{queue_name}\', '
